@@ -18,7 +18,6 @@ class Product(db.Model):
     order_items = db.relationship('OrderItem', backref='product', lazy=True)
     
     def to_dict(self):
-        """Convert product to dictionary"""
         return {
             'id': self.id,
             'seller_id': self.seller_id,

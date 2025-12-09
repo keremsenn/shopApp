@@ -12,7 +12,6 @@ class Cart(db.Model):
     items = db.relationship('CartItem', backref='cart', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):
-        """Convert cart to dictionary"""
         return {
             'id': self.id,
             'user_id': self.user_id,
@@ -30,7 +29,6 @@ class CartItem(db.Model):
     quantity = db.Column(db.Integer, default=1, nullable=False)
     
     def to_dict(self):
-        """Convert cart item to dictionary"""
         return {
             'id': self.id,
             'cart_id': self.cart_id,

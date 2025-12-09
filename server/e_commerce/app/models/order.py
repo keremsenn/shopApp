@@ -7,14 +7,13 @@ class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     total_price = db.Column(db.Numeric(10, 2), nullable=False)
-    status = db.Column(db.String(50), default='pending', nullable=False)  # pending, processing, shipped, delivered, cancelled
+    status = db.Column(db.String(50), default='pending', nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
     items = db.relationship('OrderItem', backref='order', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):
-        """Convert order to dictionary"""
         return {
             'id': self.id,
             'user_id': self.user_id,
@@ -34,7 +33,6 @@ class OrderItem(db.Model):
     unit_price = db.Column(db.Numeric(10, 2), nullable=False)
     
     def to_dict(self):
-        """Convert order item to dictionary"""
         return {
             'id': self.id,
             'order_id': self.order_id,

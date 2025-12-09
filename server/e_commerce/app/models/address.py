@@ -11,7 +11,6 @@ class Address(db.Model):
     detail = db.Column(db.Text, nullable=False)
     
     def to_dict(self):
-        """Convert address to dictionary"""
         return {
             'id': self.id,
             'user_id': self.user_id,
