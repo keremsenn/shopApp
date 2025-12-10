@@ -36,7 +36,6 @@ class OrderService:
             db.session.add(order)
             db.session.flush()
 
-            # Create order items and update stock
             for cart_item in cart.items:
                 order_item = OrderItem(
                     order_id=order.id,
@@ -48,7 +47,6 @@ class OrderService:
 
                 cart_item.product.stock -= cart_item.quantity
 
-            # Clear cart
             CartItem.query.filter_by(cart_id=cart.id).delete()
 
             db.session.commit()
@@ -59,7 +57,6 @@ class OrderService:
 
     @staticmethod
     def create_order(user_id, items):
-        # items should be a list of {product_id, quantity}
         total_price = 0
         order_items_data = []
 
@@ -83,7 +80,6 @@ class OrderService:
             db.session.add(order)
             db.session.flush()
 
-            # Create order items and update stock
             for item_data in order_items_data:
                 order_item = OrderItem(
                     order_id=order.id,
@@ -132,7 +128,6 @@ class OrderService:
             return False, "Cannot cancel delivered order"
 
         try:
-            # Restore stock
             for item in order.items:
                 item.product.stock += item.quantity
 

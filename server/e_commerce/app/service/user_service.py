@@ -1,3 +1,5 @@
+from flask_jwt_extended import get_jwt_identity
+
 from app import db
 from app.models.user import User
 
@@ -21,11 +23,17 @@ class UserService:
         if not user:
             return None, "User not found"
 
-        allowed_fields = ['fullname', 'email', 'phone', 'role']
+        allowed_fields = ['fullname', 'email', 'phone']
+
+        current_user_id = int(get_jwt_identity())
+        current_user = UserService.get_user_by_id(current_user_id)
+
+        if current_user.role == 'admin':
+            allowed_fields.append('role')
+
         for field, value in kwargs.items():
             if field in allowed_fields and value is not None:
                 if field == 'email':
-                    # Check if email is already taken by another user
                     existing_user = User.query.filter_by(email=value).first()
                     if existing_user and existing_user.id != user_id:
                         return None, "Email already in use"
@@ -51,3 +59,4 @@ class UserService:
         except Exception as e:
             db.session.rollback()
             return False, str(e)
+

@@ -5,7 +5,7 @@ class Order(db.Model):
     __tablename__ = 'orders'
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     total_price = db.Column(db.Numeric(10, 2), nullable=False)
     status = db.Column(db.String(50), default='pending', nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -42,4 +42,5 @@ class OrderItem(db.Model):
             'product': self.product.to_dict() if self.product else None,
             'subtotal': float(self.unit_price) * self.quantity
         }
+
 

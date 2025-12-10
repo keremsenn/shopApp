@@ -17,7 +17,7 @@ class User(db.Model):
     addresses = db.relationship('Address', backref='user', lazy=True, cascade='all, delete-orphan')
     products = db.relationship('Product', backref='seller', lazy=True, foreign_keys='Product.seller_id')
     cart = db.relationship('Cart', backref='user', uselist=False, lazy=True, cascade='all, delete-orphan')
-    orders = db.relationship('Order', backref='user', lazy=True)
+    orders = db.relationship('Order', backref='user', lazy=True, cascade='all, delete-orphan')
     
     def set_password(self, password):
         self.password = generate_password_hash(password)
@@ -34,4 +34,5 @@ class User(db.Model):
             'role': self.role,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+
 

@@ -19,3 +19,4 @@ class Category(db.Model):
             'children': [child.to_dict() for child in self.children] if self.children else []
         }
 
+

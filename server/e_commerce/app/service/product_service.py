@@ -116,10 +116,8 @@ class ProductService:
         unique_filename = f"{product_id}_{timestamp}_{name}{ext}"
         filepath = os.path.join(Config.UPLOAD_FOLDER, unique_filename)
 
-        # Save file
         try:
             file.save(filepath)
-            # Return relative path for URL
             relative_path = f"uploads/products/{unique_filename}"
             return relative_path, None
         except Exception as e:
@@ -173,3 +171,4 @@ class ProductService:
         except Exception as e:
             db.session.rollback()
             return False, str(e)
+

@@ -5,6 +5,10 @@ from app.models.product import Product
 
 class CartService:
     @staticmethod
+    def get_cart(user_id):
+        return Cart.query.filter_by(user_id=user_id).first()
+
+    @staticmethod
     def get_or_create_cart(user_id):
         cart = Cart.query.filter_by(user_id=user_id).first()
         if not cart:
@@ -12,14 +16,11 @@ class CartService:
             try:
                 db.session.add(cart)
                 db.session.commit()
+                return cart, None
             except Exception as e:
                 db.session.rollback()
                 return None, str(e)
         return cart, None
-
-    @staticmethod
-    def get_cart(user_id):
-        return Cart.query.filter_by(user_id=user_id).first()
 
     @staticmethod
     def add_item_to_cart(user_id, product_id, quantity=1):
@@ -31,16 +32,26 @@ class CartService:
         if not product:
             return None, "Product not found"
 
-        if product.stock < quantity:
-            return None, "Insufficient stock"
 
-        cart_item = CartItem.query.filter_by(cart_id=cart.id, product_id=product_id).first()
+        if product.stock < quantity:
+            return None, f"Insufficient stock. Available: {product.stock}"
+
+        cart_item = CartItem.query.filter_by(
+            cart_id=cart.id,
+            product_id=product_id
+        ).first()
+
         if cart_item:
-            if product.stock < cart_item.quantity + quantity:
-                return None, "Insufficient stock"
-            cart_item.quantity += quantity
+            new_quantity = cart_item.quantity + quantity
+            if product.stock < new_quantity:
+                return None, f"Insufficient stock. Available: {product.stock}"
+            cart_item.quantity = new_quantity
         else:
-            cart_item = CartItem(cart_id=cart.id, product_id=product_id, quantity=quantity)
+            cart_item = CartItem(
+                cart_id=cart.id,
+                product_id=product_id,
+                quantity=quantity
+            )
             db.session.add(cart_item)
 
         try:
@@ -57,10 +68,10 @@ class CartService:
             return None, "Cart item not found"
 
         if quantity <= 0:
-            return CartService.remove_item_from_cart(cart_item_id)
+            return None, "Quantity must be greater than 0"
 
         if cart_item.product.stock < quantity:
-            return None, "Insufficient stock"
+            return None, f"Insufficient stock. Available: {cart_item.product.stock}"
 
         cart_item.quantity = quantity
 
@@ -87,9 +98,9 @@ class CartService:
 
     @staticmethod
     def clear_cart(user_id):
-        cart = CartService.get_cart(user_id)
+        cart = Cart.query.filter_by(user_id=user_id).first()
         if not cart:
-            return True, None
+            return False, "Cart not found"
 
         try:
             CartItem.query.filter_by(cart_id=cart.id).delete()
@@ -98,3 +109,4 @@ class CartService:
         except Exception as e:
             db.session.rollback()
             return False, str(e)
+

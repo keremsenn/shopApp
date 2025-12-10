@@ -66,3 +66,4 @@ class CategoryService:
             db.session.rollback()
             return False, str(e)
 
+

@@ -38,3 +38,4 @@ class CartItem(db.Model):
             'subtotal': float(self.product.price) * self.quantity if self.product else 0.0
         }
 
+

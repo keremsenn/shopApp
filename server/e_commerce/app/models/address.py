@@ -20,3 +20,4 @@ class Address(db.Model):
             'detail': self.detail
         }
 
+

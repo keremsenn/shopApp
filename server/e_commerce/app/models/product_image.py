@@ -14,3 +14,4 @@ class ProductImage(db.Model):
             'url': self.url
         }
 
+
