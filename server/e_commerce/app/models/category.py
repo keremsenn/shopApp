@@ -7,7 +7,8 @@ class Category(db.Model):
     name = db.Column(db.String(100), nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=True)
     parent = db.relationship('Category', remote_side=[id], backref='children')
-    
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)
+    deleted_at = db.Column(db.DateTime, nullable=True)
     # Relationships
     products = db.relationship('Product', backref='category', lazy=True)
     

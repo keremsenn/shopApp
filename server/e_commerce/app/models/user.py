@@ -12,7 +12,9 @@ class User(db.Model):
     phone = db.Column(db.String(20))
     role = db.Column(db.String(20), nullable=False, default='customer')  # customer, seller, admin
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)
+    deleted_at = db.Column(db.DateTime, nullable=True)
+
     # Relationships
     addresses = db.relationship('Address', backref='user', lazy=True, cascade='all, delete-orphan')
     products = db.relationship('Product', backref='seller', lazy=True, foreign_keys='Product.seller_id')

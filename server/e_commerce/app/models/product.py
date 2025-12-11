@@ -11,7 +11,8 @@ class Product(db.Model):
     price = db.Column(db.Numeric(10, 2), nullable=False)
     stock = db.Column(db.Integer, default=0, nullable=False)
     rating = db.Column(db.Numeric(3, 2), default=0.0)
-    
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)
+    deleted_at = db.Column(db.DateTime, nullable=True)
     # Relationships
     images = db.relationship('ProductImage', backref='product', lazy=True, cascade='all, delete-orphan')
     cart_items = db.relationship('CartItem', backref='product', lazy=True)
