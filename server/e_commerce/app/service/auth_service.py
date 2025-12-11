@@ -7,8 +7,30 @@ from datetime import datetime
 class AuthService:
     @staticmethod
     def register_user(fullname, email, password, phone=None, role='customer'):
-        if User.query.filter_by(email=email).first():
-            return None, "Email already registered"
+        email = email.lower().strip()
+
+        if len(password) < 6:
+            return None, "Password must be at least 6 characters"
+
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            if not existing_user.is_deleted:
+                return None, "Email already registered"
+
+            else:
+                existing_user.is_deleted = False
+                existing_user.fullname = fullname
+                existing_user.phone = phone
+                existing_user.role = role
+                existing_user.set_password(password)
+                existing_user.created_at = datetime.utcnow()
+
+                try:
+                    db.session.commit()
+                    return existing_user, None
+                except Exception as e:
+                    db.session.rollback()
+                    return None, str(e)
 
         user = User(
             fullname=fullname,
@@ -28,18 +50,17 @@ class AuthService:
 
     @staticmethod
     def login_user(email, password):
-        user = User.query.filter_by(email=email).first()
+        email = email.lower().strip()
+
+        user = User.query.filter_by(email=email, is_deleted=False).first()
 
         if not user or not user.check_password(password):
             return None, "Invalid email or password"
 
-        access_token = create_access_token(identity=str(user.id))
+        additional_claims = {"role": user.role}
+        access_token = create_access_token(identity=str(user.id), additional_claims=additional_claims)
+
         return {
             'user': user.to_dict(),
             'access_token': access_token
         }, None
-
-    @staticmethod
-    def get_user_by_id(user_id):
-        return User.query.get(user_id)
-

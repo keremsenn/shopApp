@@ -1,12 +1,14 @@
+from sqlalchemy.orm import joinedload
 from app import db
 from app.models.cart import Cart, CartItem
 from app.models.product import Product
 
-
 class CartService:
     @staticmethod
     def get_cart(user_id):
-        return Cart.query.filter_by(user_id=user_id).first()
+        return Cart.query.options(
+            joinedload(Cart.items).joinedload(CartItem.product)
+        ).filter_by(user_id=user_id).first()
 
     @staticmethod
     def get_or_create_cart(user_id):
@@ -24,14 +26,16 @@ class CartService:
 
     @staticmethod
     def add_item_to_cart(user_id, product_id, quantity=1):
+        if quantity <= 0:
+            return None, "Quantity must be greater than 0"
+
         cart, error = CartService.get_or_create_cart(user_id)
         if error:
             return None, error
 
-        product = Product.query.get(product_id)
+        product = Product.query.filter_by(id=product_id, is_deleted=False).first()
         if not product:
             return None, "Product not found"
-
 
         if product.stock < quantity:
             return None, f"Insufficient stock. Available: {product.stock}"
@@ -62,10 +66,18 @@ class CartService:
             return None, str(e)
 
     @staticmethod
-    def update_cart_item(cart_item_id, quantity):
-        cart_item = CartItem.query.get(cart_item_id)
+    def update_cart_item(user_id, cart_item_id, quantity):
+
+        cart_item = CartItem.query.join(Cart).filter(
+            CartItem.id == cart_item_id,
+            Cart.user_id == user_id
+        ).first()
+
         if not cart_item:
             return None, "Cart item not found"
+
+        if cart_item.product.is_deleted:
+            return None, "This product is no longer available"
 
         if quantity <= 0:
             return None, "Quantity must be greater than 0"
@@ -83,8 +95,12 @@ class CartService:
             return None, str(e)
 
     @staticmethod
-    def remove_item_from_cart(cart_item_id):
-        cart_item = CartItem.query.get(cart_item_id)
+    def remove_item_from_cart(user_id, cart_item_id):
+        cart_item = CartItem.query.join(Cart).filter(
+            CartItem.id == cart_item_id,
+            Cart.user_id == user_id
+        ).first()
+
         if not cart_item:
             return False, "Cart item not found"
 
@@ -109,4 +125,3 @@ class CartService:
         except Exception as e:
             db.session.rollback()
             return False, str(e)
-

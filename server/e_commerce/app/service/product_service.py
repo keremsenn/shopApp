@@ -1,43 +1,44 @@
-import shutil
-
+import os
+from datetime import datetime
+from werkzeug.utils import secure_filename
 from flask import current_app
-
 from app import db
 from app.models.product import Product
 from app.models.product_image import ProductImage
-from werkzeug.utils import secure_filename
 from config import Config
-import os
-from datetime import datetime
 
 
 class ProductService:
     @staticmethod
     def get_all_products():
-        return Product.query.all()
+        return Product.query.filter_by(is_deleted=False).all()
 
     @staticmethod
     def get_product_by_id(product_id):
-        return Product.query.get(product_id)
+        return Product.query.filter_by(id=product_id, is_deleted=False).first()
 
     @staticmethod
     def get_products_by_seller(seller_id):
-        return Product.query.filter_by(seller_id=seller_id).all()
+        return Product.query.filter_by(seller_id=seller_id, is_deleted=False).all()
 
     @staticmethod
     def get_products_by_category(category_id):
-        return Product.query.filter_by(category_id=category_id).all()
+        return Product.query.filter_by(category_id=category_id, is_deleted=False).all()
 
     @staticmethod
-    def create_product(seller_id, category_id, name, description, price, stock, rating=0.0):
+    def create_product(data, requesting_user):
+        if requesting_user.role not in ['seller', 'admin']:
+            return None, "Only sellers and admins can create products"
+
+
         product = Product(
-            seller_id=seller_id,
-            category_id=category_id,
-            name=name,
-            description=description,
-            price=price,
-            stock=stock,
-            rating=rating
+            seller_id=requesting_user.id,
+            category_id=data.get('category_id'),
+            name=data.get('name'),
+            description=data.get('description'),
+            price=data.get('price'),
+            stock=data.get('stock', 0),
+            rating=data.get('rating', 0.0)
         )
 
         try:
@@ -49,13 +50,16 @@ class ProductService:
             return None, str(e)
 
     @staticmethod
-    def update_product(product_id, **kwargs):
-        product = Product.query.get(product_id)
+    def update_product(product_id, data, requesting_user):
+        product = Product.query.filter_by(id=product_id, is_deleted=False).first()
         if not product:
             return None, "Product not found"
 
+        if requesting_user.role != 'admin' and product.seller_id != requesting_user.id:
+            return None, "Access denied"
+
         allowed_fields = ['name', 'description', 'price', 'stock', 'rating', 'category_id']
-        for field, value in kwargs.items():
+        for field, value in data.items():
             if field in allowed_fields and value is not None:
                 setattr(product, field, value)
 
@@ -67,36 +71,23 @@ class ProductService:
             return None, str(e)
 
     @staticmethod
-    def delete_product(product_id):
-        product = Product.query.get(product_id)
+    def delete_product(product_id, requesting_user):
+        product = Product.query.filter_by(id=product_id, is_deleted=False).first()
         if not product:
             return False, "Product not found"
 
-        images = ProductImage.query.filter_by(product_id=product_id).all()
-        product_folder = os.path.join(
-            current_app.config['UPLOAD_FOLDER'],
-            str(product_id)
-        )
+        if requesting_user.role != 'admin' and product.seller_id != requesting_user.id:
+            return False, "Access denied"
 
         try:
-            for img in images:
-                if os.path.exists(img.url):
-                    os.remove(img.url)
-
-            if os.path.exists(product_folder):
-                shutil.rmtree(product_folder)
-
-            for img in images:
-                db.session.delete(img)
-
-            db.session.delete(product)
+            product.is_deleted = True
+            product.deleted_at = datetime.utcnow()
             db.session.commit()
-
             return True, None
-
         except Exception as e:
             db.session.rollback()
             return False, str(e)
+
 
     @staticmethod
     def allowed_file(filename):
@@ -108,13 +99,15 @@ class ProductService:
         if not file or not ProductService.allowed_file(file.filename):
             return None, "Invalid file type. Allowed: " + ", ".join(Config.ALLOWED_EXTENSIONS)
 
-        os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
+        upload_folder = os.path.join(current_app.root_path, 'static', 'uploads', 'products')
+        os.makedirs(upload_folder, exist_ok=True)
 
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = secure_filename(file.filename)
         name, ext = os.path.splitext(filename)
         unique_filename = f"{product_id}_{timestamp}_{name}{ext}"
-        filepath = os.path.join(Config.UPLOAD_FOLDER, unique_filename)
+
+        filepath = os.path.join(upload_folder, unique_filename)
 
         try:
             file.save(filepath)
@@ -124,21 +117,25 @@ class ProductService:
             return None, f"Error saving file: {str(e)}"
 
     @staticmethod
-    def add_product_image(product_id, url=None, file=None):
-        product = Product.query.get(product_id)
+    def add_product_image(product_id, requesting_user, url=None, file=None):
+        product = Product.query.filter_by(id=product_id, is_deleted=False).first()
         if not product:
             return None, "Product not found"
 
+        if requesting_user.role != 'admin' and product.seller_id != requesting_user.id:
+            return None, "Access denied"
+
+        final_url = url
         if file:
-            filepath, error = ProductService.save_uploaded_file(file, product_id)
+            saved_path, error = ProductService.save_uploaded_file(file, product_id)
             if error:
                 return None, error
-            url = filepath
+            final_url = saved_path
 
-        if not url:
+        if not final_url:
             return None, "Either URL or file must be provided"
 
-        image = ProductImage(product_id=product_id, url=url)
+        image = ProductImage(product_id=product_id, url=final_url)
 
         try:
             db.session.add(image)
@@ -149,15 +146,20 @@ class ProductService:
             return None, str(e)
 
     @staticmethod
-    def delete_product_image(image_id):
+    def delete_product_image(image_id, requesting_user):
         image = ProductImage.query.get(image_id)
         if not image:
             return False, "Image not found"
 
-        file_path = image.url
-        if file_path and not file_path.startswith('http'):
-            full_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-                                     file_path)
+        product = Product.query.get(image.product_id)
+
+        if requesting_user.role != 'admin':
+            if not product or product.seller_id != requesting_user.id:
+                return False, "Access denied"
+
+        if image.url and not image.url.startswith(('http://', 'https://')):
+            full_path = os.path.join(current_app.root_path, 'static', image.url)
+
             if os.path.exists(full_path):
                 try:
                     os.remove(full_path)
@@ -171,4 +173,3 @@ class ProductService:
         except Exception as e:
             db.session.rollback()
             return False, str(e)
-

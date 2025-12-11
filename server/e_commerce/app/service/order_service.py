@@ -1,4 +1,5 @@
 from app import db
+from app.models import User, Address
 from app.models.order import Order, OrderItem
 from app.models.cart import Cart, CartItem
 from app.models.product import Product
@@ -16,21 +17,46 @@ class OrderService:
 
     @staticmethod
     def get_orders_by_user(user_id):
-        return Order.query.filter_by(user_id=user_id).all()
+        # Kullanıcı silinmişse siparişlerini göstermemek tercih meselesidir,
+        # ancak genelde sipariş geçmişi kaybolmaz. Yine de user kontrolü ekledim.
+        user = User.query.filter_by(id=user_id, is_deleted=False).first()
+        if not user:
+            return []
+        return Order.query.filter_by(user_id=user_id).order_by(Order.created_at.desc()).all()
 
     @staticmethod
-    def create_order_from_cart(user_id):
+    def create_order_from_cart(user_id, address_id):
+
+        user = User.query.filter_by(id=user_id, is_deleted=False).first()
+        if not user:
+            return None, "User not found"
+
         cart = CartService.get_cart(user_id)
         if not cart or not cart.items:
             return None, "Cart is empty"
 
-        total_price = sum(float(item.product.price) * item.quantity for item in cart.items)
+        address = Address.query.filter_by(id=address_id, user_id=user_id, is_deleted=False).first()
+        if not address:
+            return None, "Invalid delivery address"
 
+        total_price = 0
         for item in cart.items:
+            if item.product.is_deleted:
+                return None, f"Product '{item.product.name}' is no longer available"
             if item.product.stock < item.quantity:
-                return None, f"Insufficient stock for product: {item.product.name}"
+                return None, f"Insufficient stock for: {item.product.name}"
+            total_price += float(item.product.price) * item.quantity
 
-        order = Order(user_id=user_id, total_price=total_price, status='pending')
+        order = Order(
+            user_id=user_id,
+            total_price=total_price,
+            status='pending',
+
+            shipping_title=address.title,
+            shipping_city=address.city,
+            shipping_district=address.district,
+            shipping_detail=address.detail
+        )
 
         try:
             db.session.add(order)
@@ -44,54 +70,75 @@ class OrderService:
                     unit_price=cart_item.product.price
                 )
                 db.session.add(order_item)
-
                 cart_item.product.stock -= cart_item.quantity
 
             CartItem.query.filter_by(cart_id=cart.id).delete()
 
             db.session.commit()
             return order, None
+
         except Exception as e:
             db.session.rollback()
             return None, str(e)
 
     @staticmethod
-    def create_order(user_id, items):
+    def create_order_direct(user_id, address_id, items_data):
+
+        user = User.query.filter_by(id=user_id, is_deleted=False).first()
+        if not user:
+            return None, "User not found"
+
+        address = Address.query.filter_by(id=address_id, user_id=user_id, is_deleted=False).first()
+        if not address:
+            return None, "Invalid delivery address"
+
         total_price = 0
-        order_items_data = []
+        order_items_buffer = []
 
-        for item_data in items:
-            product = Product.query.get(item_data['product_id'])
+        for item in items_data:
+            product = Product.query.filter_by(id=item["product_id"], is_deleted=False).first()
             if not product:
-                return None, f"Product {item_data['product_id']} not found"
+                return None, f"Product {item['product_id']} not found"
 
-            if product.stock < item_data['quantity']:
-                return None, f"Insufficient stock for product: {product.name}"
+            qty = item.get('quantity', 1)
+            if product.stock < qty:
+                return None, f"Insufficient stock for: {product.name}"
 
-            total_price += float(product.price) * item_data['quantity']
-            order_items_data.append({
+            total_price += float(product.price) * qty
+            order_items_buffer.append({
                 'product': product,
-                'quantity': item_data['quantity']
+                'quantity': qty,
+                'price': product.price
             })
 
-        order = Order(user_id=user_id, total_price=total_price, status='pending')
+        order = Order(
+            user_id=user_id,
+            total_price=total_price,
+            status='pending',
+            shipping_title=address.title,
+            shipping_city=address.city,
+            shipping_district=address.district,
+            shipping_detail=address.detail
+        )
 
         try:
             db.session.add(order)
             db.session.flush()
 
-            for item_data in order_items_data:
+            for buffer_item in order_items_buffer:
                 order_item = OrderItem(
                     order_id=order.id,
-                    product_id=item_data['product'].id,
-                    quantity=item_data['quantity'],
-                    unit_price=item_data['product'].price
+                    product_id=buffer_item['product'].id,
+                    quantity=buffer_item['quantity'],
+                    unit_price=buffer_item['price']
                 )
                 db.session.add(order_item)
-                item_data['product'].stock -= item_data['quantity']
+                # Stok Düş
+                buffer_item['product'].stock -= buffer_item['quantity']
 
             db.session.commit()
             return order, None
+
         except Exception as e:
             db.session.rollback()
             return None, str(e)
@@ -106,8 +153,10 @@ class OrderService:
         if status not in valid_statuses:
             return None, f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
 
-        order.status = status
+        if order.status == 'cancelled':
+            return None, "Cannot update a cancelled order"
 
+        order.status = status
         try:
             db.session.commit()
             return order, None
@@ -116,20 +165,26 @@ class OrderService:
             return None, str(e)
 
     @staticmethod
-    def cancel_order(order_id):
+    def cancel_order(order_id, user_id, is_admin=False):
+
         order = Order.query.get(order_id)
         if not order:
             return False, "Order not found"
 
+        if not is_admin and order.user_id != user_id:
+            return False, "Access denied"
+
         if order.status == 'cancelled':
             return False, "Order already cancelled"
 
-        if order.status == 'delivered':
-            return False, "Cannot cancel delivered order"
+        if order.status in ['shipped', 'delivered']:
+            return False, f"Cannot cancel order with status: {order.status}"
 
         try:
             for item in order.items:
-                item.product.stock += item.quantity
+                product = Product.query.filter_by(id=item.product_id).first()
+                if product and not product.is_deleted:
+                    product.stock += item.quantity
 
             order.status = 'cancelled'
             db.session.commit()
