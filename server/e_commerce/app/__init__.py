@@ -10,16 +10,16 @@ db = SQLAlchemy()
 jwt = JWTManager()
 migrate = Migrate()
 
+
 def create_app(config_class=Config):
     app = Flask(__name__, static_url_path='/uploads', static_folder='uploads')
     app.config.from_object(config_class)
-    
+
     db.init_app(app)
     jwt.init_app(app)
     migrate.init_app(app, db)
     CORS(app)
-    
-    # Create upload directory if it doesn't exist
+
     os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
 
     @app.route('/uploads/products/<filename>')
@@ -33,7 +33,9 @@ def create_app(config_class=Config):
     from app.api.cart import cart_bp
     from app.api.orders import orders_bp
     from app.api.addresses import addresses_bp
-    
+    from app.api.seller_request_routes import seller_req_bp
+
+
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(users_bp, url_prefix='/api/users')
     app.register_blueprint(products_bp, url_prefix='/api/products')
@@ -41,5 +43,6 @@ def create_app(config_class=Config):
     app.register_blueprint(cart_bp, url_prefix='/api/cart')
     app.register_blueprint(orders_bp, url_prefix='/api/orders')
     app.register_blueprint(addresses_bp, url_prefix='/api/addresses')
-    
+    app.register_blueprint(seller_req_bp, url_prefix='/api/seller-requests')
+
     return app
