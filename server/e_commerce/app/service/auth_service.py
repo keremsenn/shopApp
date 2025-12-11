@@ -1,13 +1,16 @@
+import re
 from app import db
 from app.models.user import User
 from flask_jwt_extended import create_access_token
 from datetime import datetime
 
-
 class AuthService:
     @staticmethod
     def register_user(fullname, email, password, phone=None, role='customer'):
         email = email.lower().strip()
+        email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+        if not re.match(email_regex, email):
+            return None, "Invalid email format"
 
         if len(password) < 6:
             return None, "Password must be at least 6 characters"
