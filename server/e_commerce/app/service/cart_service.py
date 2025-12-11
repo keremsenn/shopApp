@@ -1,14 +1,27 @@
 from sqlalchemy.orm import joinedload
 from app import db
+from app.models import User
 from app.models.cart import Cart, CartItem
 from app.models.product import Product
 
 class CartService:
     @staticmethod
     def get_cart(user_id):
-        return Cart.query.options(
+        cart = Cart.query \
+            .join(User, Cart.user_id == User.id) \
+            .options(
             joinedload(Cart.items).joinedload(CartItem.product)
-        ).filter_by(user_id=user_id).first()
+        ) \
+            .filter(
+            Cart.user_id == user_id,
+            User.is_deleted == False
+        ) \
+            .first()
+
+        if not cart:
+            return None
+
+        return cart
 
     @staticmethod
     def get_or_create_cart(user_id):
