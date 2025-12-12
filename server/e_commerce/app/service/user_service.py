@@ -18,14 +18,23 @@ class UserService:
 
     @staticmethod
     def update_user(user_id, data, requesting_user):
-
         user = User.query.filter_by(id=user_id, is_deleted=False).first()
         if not user:
             return None, "User not found"
+        if user.role == 'admin' and requesting_user.id != user.id:
+            return None, "Access Denied: You cannot update another admin account."
 
         allowed_fields = ['fullname', 'email', 'phone']
 
-        if requesting_user and requesting_user.role == 'admin':
+        if requesting_user.role == 'admin' and 'role' in data:
+            new_role_value = data['role']
+
+            if new_role_value == 'admin':
+                return None, "Security Restriction: Admins cannot grant Admin privileges."
+
+            if requesting_user.id == user.id:
+                return None, "Operation not allowed: You cannot change your own role."
+
             allowed_fields.append('role')
 
         if 'email' in data and data['email'] != user.email:
@@ -41,13 +50,13 @@ class UserService:
             if len(data['password']) < 6:
                 return None, "Password must be at least 6 characters"
             user.set_password(data['password'])
-
         try:
             db.session.commit()
             return user, None
         except Exception as e:
             db.session.rollback()
             return None, str(e)
+
 
     @staticmethod
     def delete_user(user_id):

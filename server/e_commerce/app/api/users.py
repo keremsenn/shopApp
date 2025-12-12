@@ -56,6 +56,8 @@ def update_user(user_id):
     if not requesting_user:
         return jsonify({'error': 'Unauthorized'}), 401
 
+
+
     if current_user_id != user_id and requesting_user.role != 'admin':
         return jsonify({'error': 'Access denied'}), 403
 
