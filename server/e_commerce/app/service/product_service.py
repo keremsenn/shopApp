@@ -31,6 +31,11 @@ class ProductService:
         if requesting_user.role not in ['seller', 'admin']:
             return None, "Only sellers and admins can create products"
 
+        category_id = data.get('category_id')
+        if category_id:
+            category = Category.query.filter_by(id=category_id, is_deleted=False).first()
+            if not category:
+                return None, "Invalid Category ID"
 
         product = Product(
             seller_id=requesting_user.id,
