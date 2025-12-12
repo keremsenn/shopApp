@@ -3,6 +3,7 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 from flask import current_app
 from app import db
+from app.models import Category
 from app.models.product import Product
 from app.models.product_image import ProductImage
 from config import Config
@@ -59,6 +60,12 @@ class ProductService:
             return None, "Access denied"
 
         allowed_fields = ['name', 'description', 'price', 'stock', 'rating', 'category_id']
+
+        if 'category_id' in data and data['category_id'] is not None:
+            category = Category.query.filter_by(id=data['category_id'], is_deleted=False).first()
+            if not category:
+                return None, "Invalid Category ID: Category does not exist."
+
         for field, value in data.items():
             if field in allowed_fields and value is not None:
                 setattr(product, field, value)
