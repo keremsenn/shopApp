@@ -15,13 +15,3 @@ class SellerRequest(db.Model):
 
 
     user = db.relationship('User', backref=db.backref('seller_requests', lazy=True))
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'user_email': self.user.email,
-            'company_name': self.company_name,
-            'status': self.status,
-            'created_at': self.created_at
-        }
