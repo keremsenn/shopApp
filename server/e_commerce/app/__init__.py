@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
@@ -22,9 +22,10 @@ def create_app(config_class=Config):
 
     os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
 
-    @app.route('/uploads/products/<filename>')
-    def uploaded_file(filename):
-        return send_from_directory(Config.UPLOAD_FOLDER, filename)
+    @app.route('/uploads/<path:filename>')
+    def serve_uploads(filename):
+        upload_folder = current_app.config['UPLOAD_FOLDER']
+        return send_from_directory(upload_folder, filename)
 
     from app.api.auth import auth_bp
     from app.api.users import users_bp
