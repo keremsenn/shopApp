@@ -5,7 +5,9 @@ from app.schemas.product_schema import ProductSchema
 class CartItemSchema(Schema):
     id = fields.Int(dump_only=True)
     product_id = fields.Int(required=True, load_only=True)
-    quantity = fields.Int(load_default=1, validate=validate.Range(min=1, error="Miktar en az 1 olmalıdır."))
+    quantity = fields.Int(
+        load_default=1,
+        validate=validate.Range(min=1, max=10, error="Bir seferde en az 1, en fazla 10 adet ekleyebilirsiniz."))
     product = fields.Nested(ProductSchema(only=("id", "name", "price", "images", "stock")), dump_only=True)
     subtotal = fields.Method("get_subtotal", dump_only=True)
 

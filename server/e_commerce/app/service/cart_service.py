@@ -33,6 +33,8 @@ class CartService:
         quantity = data['quantity']
         product_id = data['product_id']
 
+        max_item_limit = 10
+
         cart, error = CartService.get_or_create_cart(user_id)
         if error:
             return None, error
@@ -46,11 +48,17 @@ class CartService:
 
         cart_item = CartItem.query.filter_by(cart_id=cart.id, product_id=product_id).first()
 
+        current_quantity_in_cart = cart_item.quantity if cart_item else 0
+        new_total_quantity = current_quantity_in_cart + quantity
+
+        if new_total_quantity > max_item_limit:
+            return None, f"Bir üründen en fazla {max_item_limit} adet alabilirsiniz. Sepetinizde zaten {current_quantity_in_cart} adet var."
+
+        if product.stock < new_total_quantity:
+            return None, f"Stok yetersiz. Toplam istenen: {new_total_quantity}, Stoktaki: {product.stock}"
+
         if cart_item:
-            new_quantity = cart_item.quantity + quantity
-            if product.stock < new_quantity:
-                return None, f"Insufficient stock for update. Available: {product.stock}"
-            cart_item.quantity = new_quantity
+            cart_item.quantity = new_total_quantity
         else:
             cart_item = CartItem(
                 cart_id=cart.id,
@@ -68,6 +76,8 @@ class CartService:
 
     @staticmethod
     def update_cart_item(user_id, cart_item_id, quantity):
+        max_item_limit = 10
+
         cart_item = CartItem.query.join(Cart).filter(
             CartItem.id == cart_item_id,
             Cart.user_id == user_id
@@ -75,6 +85,9 @@ class CartService:
 
         if not cart_item:
             return None, "Cart item not found"
+
+        if quantity > max_item_limit:
+            return None, f"Bir üründen en fazla {max_item_limit} adet alabilirsiniz."
 
         if cart_item.product.is_deleted:
             return None, "This product is no longer available"
