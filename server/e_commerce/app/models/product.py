@@ -17,18 +17,5 @@ class Product(db.Model):
     images = db.relationship('ProductImage', backref='product', lazy=True, cascade='all, delete-orphan')
     cart_items = db.relationship('CartItem', backref='product', lazy=True)
     order_items = db.relationship('OrderItem', backref='product', lazy=True)
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'seller_id': self.seller_id,
-            'category_id': self.category_id,
-            'name': self.name,
-            'description': self.description,
-            'price': float(self.price) if self.price else 0.0,
-            'stock': self.stock,
-            'rating': float(self.rating) if self.rating else 0.0,
-            'images': [img.to_dict() for img in self.images],
-            'seller': self.seller.fullname if self.seller else None
-        }
+
 

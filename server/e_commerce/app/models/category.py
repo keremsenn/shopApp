@@ -11,13 +11,6 @@ class Category(db.Model):
     deleted_at = db.Column(db.DateTime, nullable=True)
     # Relationships
     products = db.relationship('Product', backref='category', lazy=True)
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'name': self.name,
-            'parent_id': self.parent_id,
-            'children': [child.to_dict() for child in self.children] if self.children else []
-        }
+
 
 

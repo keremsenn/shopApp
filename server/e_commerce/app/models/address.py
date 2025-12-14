@@ -11,15 +11,6 @@ class Address(db.Model):
     detail = db.Column(db.Text, nullable=False)
     is_deleted = db.Column(db.Boolean, default=False, nullable=False)
     deleted_at = db.Column(db.DateTime, nullable=True)
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'title': self.title,
-            'city': self.city,
-            'district': self.district,
-            'detail': self.detail
-        }
+
 
 
