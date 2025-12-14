@@ -1,8 +1,12 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from marshmallow import ValidationError
 from app.service.cart_service import CartService
+from app.schemas.cart_schema import CartSchema, CartItemSchema
 
 cart_bp = Blueprint('cart', __name__)
+cart_schema = CartSchema()
+cart_item_schema = CartItemSchema()
 
 
 @cart_bp.route('', methods=['GET'])
@@ -12,28 +16,22 @@ def get_cart():
     cart = CartService.get_cart(current_user_id)
 
     if not cart:
-        return jsonify({'items': [], 'total': 0}), 200
+        return jsonify({'items': [], 'total_price': 0.0}), 200
 
-    return jsonify(cart.to_dict()), 200
+    return jsonify(cart_schema.dump(cart)), 200
 
 
 @cart_bp.route('/items', methods=['POST'])
 @jwt_required()
 def add_item_to_cart():
     current_user_id = int(get_jwt_identity())
-    data = request.get_json()
+    json_data = request.get_json() or {}
+    try:
+        validated_data = cart_item_schema.load(json_data)
+    except ValidationError as err:
+        return jsonify(err.messages), 422
 
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
-
-    if 'product_id' not in data:
-        return jsonify({'error': 'product_id is required'}), 400
-
-    cart_item, error = CartService.add_item_to_cart(
-        current_user_id,
-        data['product_id'],
-        data.get('quantity', 1)
-    )
+    cart_item, error = CartService.add_item_to_cart(current_user_id, validated_data)
 
     if error:
         status_code = 404 if "not found" in error else 400
@@ -41,7 +39,7 @@ def add_item_to_cart():
 
     return jsonify({
         'message': 'Item added to cart successfully',
-        'cart_item': cart_item.to_dict()
+        'cart_item': cart_item_schema.dump(cart_item)
     }), 201
 
 
@@ -49,12 +47,21 @@ def add_item_to_cart():
 @jwt_required()
 def update_cart_item(cart_item_id):
     current_user_id = int(get_jwt_identity())
-    data = request.get_json()
+    json_data = request.get_json() or {}
 
-    if not data or 'quantity' not in data:
+    if 'quantity' not in json_data:
         return jsonify({'error': 'quantity is required'}), 400
 
-    cart_item, error = CartService.update_cart_item(current_user_id, cart_item_id, data['quantity'])
+    try:
+        CartItemSchema(only=("quantity",)).load(json_data)
+    except ValidationError as err:
+        return jsonify(err.messages), 422
+
+    cart_item, error = CartService.update_cart_item(
+        current_user_id,
+        cart_item_id,
+        json_data['quantity']
+    )
 
     if error:
         status_code = 404 if "not found" in error else 400
@@ -62,7 +69,7 @@ def update_cart_item(cart_item_id):
 
     return jsonify({
         'message': 'Cart item updated successfully',
-        'cart_item': cart_item.to_dict()
+        'cart_item': cart_item_schema.dump(cart_item)
     }), 200
 
 

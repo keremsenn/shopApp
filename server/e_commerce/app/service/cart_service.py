@@ -1,25 +1,16 @@
 from sqlalchemy.orm import joinedload
 from app import db
-from app.models import User
 from app.models.cart import Cart, CartItem
 from app.models.product import Product
+
 
 class CartService:
     @staticmethod
     def get_cart(user_id):
         cart = Cart.query \
-            .join(User, Cart.user_id == User.id) \
-            .options(
-            joinedload(Cart.items).joinedload(CartItem.product)
-        ) \
-            .filter(
-            Cart.user_id == user_id,
-            User.is_deleted == False
-        ) \
+            .options(joinedload(Cart.items).joinedload(CartItem.product)) \
+            .filter_by(user_id=user_id) \
             .first()
-
-        if not cart:
-            return None
 
         return cart
 
@@ -38,9 +29,9 @@ class CartService:
         return cart, None
 
     @staticmethod
-    def add_item_to_cart(user_id, product_id, quantity=1):
-        if quantity <= 0:
-            return None, "Quantity must be greater than 0"
+    def add_item_to_cart(user_id, data):
+        quantity = data['quantity']
+        product_id = data['product_id']
 
         cart, error = CartService.get_or_create_cart(user_id)
         if error:
@@ -53,15 +44,12 @@ class CartService:
         if product.stock < quantity:
             return None, f"Insufficient stock. Available: {product.stock}"
 
-        cart_item = CartItem.query.filter_by(
-            cart_id=cart.id,
-            product_id=product_id
-        ).first()
+        cart_item = CartItem.query.filter_by(cart_id=cart.id, product_id=product_id).first()
 
         if cart_item:
             new_quantity = cart_item.quantity + quantity
             if product.stock < new_quantity:
-                return None, f"Insufficient stock. Available: {product.stock}"
+                return None, f"Insufficient stock for update. Available: {product.stock}"
             cart_item.quantity = new_quantity
         else:
             cart_item = CartItem(
@@ -80,7 +68,6 @@ class CartService:
 
     @staticmethod
     def update_cart_item(user_id, cart_item_id, quantity):
-
         cart_item = CartItem.query.join(Cart).filter(
             CartItem.id == cart_item_id,
             Cart.user_id == user_id
@@ -91,9 +78,6 @@ class CartService:
 
         if cart_item.product.is_deleted:
             return None, "This product is no longer available"
-
-        if quantity <= 0:
-            return None, "Quantity must be greater than 0"
 
         if cart_item.product.stock < quantity:
             return None, f"Insufficient stock. Available: {cart_item.product.stock}"
