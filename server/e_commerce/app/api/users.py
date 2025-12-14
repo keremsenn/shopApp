@@ -6,11 +6,9 @@ from app.service.user_service import UserService
 from app.schemas.user_schema import UserSchema, UserUpdateSchema
 
 users_bp = Blueprint('users', __name__)
-
-# Şema nesnelerini global olarak bir kere tanımlamak performans için iyidir
-user_schema = UserSchema()  # Tek bir kullanıcı için
-users_schema = UserSchema(many=True)  # Kullanıcı listesi için
-user_update_schema = UserUpdateSchema(partial=True)  # Güncelleme için (zorunluluk yok)
+user_schema = UserSchema()
+users_schema = UserSchema(many=True)
+user_update_schema = UserUpdateSchema(partial=True)
 
 
 @users_bp.route('', methods=['GET'])
@@ -23,9 +21,6 @@ def get_all_users():
         return jsonify({'error': 'Admin access required'}), 403
 
     users = UserService.get_all_users()
-
-    # ESKİ: [user.to_dict() for user in users]
-    # YENİ: Tek satırda tüm listeyi çevirir
     return jsonify(users_schema.dump(users)), 200
 
 
@@ -41,8 +36,6 @@ def get_user(user_id):
     user = UserService.get_user_by_id(user_id)
     if not user:
         return jsonify({'error': 'User not found'}), 404
-
-    # YENİ: Tekil kullanıcıyı dump ediyoruz
     return jsonify(user_schema.dump(user)), 200
 
 
@@ -73,19 +66,11 @@ def update_user(user_id):
     json_data = request.get_json()
     if not json_data:
         return jsonify({'error': 'No data provided'}), 400
-
-    # --- MODERN VALİDASYON KISMI ---
     try:
-        # Gelen veriyi şemadan geçiriyoruz.
-        # Hatalıysa otomatik ValidationError fırlatır.
-        # Temiz veriyi 'validated_data' değişkenine alıyoruz.
         validated_data = user_update_schema.load(json_data)
     except ValidationError as err:
-        # Örn: Şifre 3 karakterse veya email bozuksa burası çalışır.
-        # err.messages bize hatayı detaylı verir.
         return jsonify(err.messages), 422
 
-    # Servise artık ham 'json_data' değil, temizlenmiş 'validated_data' gidiyor.
     user, error = UserService.update_user(user_id, validated_data, requesting_user)
 
     if error:
@@ -94,7 +79,7 @@ def update_user(user_id):
 
     return jsonify({
         'message': 'User updated successfully',
-        'user': user_schema.dump(user)  # Güncellenen veriyi şema ile dönüyoruz
+        'user': user_schema.dump(user)
     }), 200
 
 
