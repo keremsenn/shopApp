@@ -1,20 +1,26 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from marshmallow import ValidationError
 from app.service.category_service import CategoryService
 from app.service.user_service import UserService
+from app.schemas.category_schema import CategorySchema
 
 categories_bp = Blueprint('categories', __name__)
+
+category_schema = CategorySchema()
+categories_schema = CategorySchema(many=True)
+
 
 @categories_bp.route('', methods=['GET'])
 def get_all_categories():
     categories = CategoryService.get_all_categories()
-    return jsonify([category.to_dict() for category in categories]), 200
+    return jsonify(categories_schema.dump(categories)), 200
 
 
 @categories_bp.route('/roots', methods=['GET'])
 def get_root_categories():
     categories = CategoryService.get_root_categories()
-    return jsonify([category.to_dict() for category in categories]), 200
+    return jsonify(categories_schema.dump(categories)), 200
 
 
 @categories_bp.route('/<int:category_id>', methods=['GET'])
@@ -23,13 +29,13 @@ def get_category(category_id):
     if not category:
         return jsonify({'error': 'Category not found'}), 404
 
-    return jsonify(category.to_dict()), 200
+    return jsonify(category_schema.dump(category)), 200
 
 
 @categories_bp.route('/parent/<int:parent_id>', methods=['GET'])
 def get_child_categories(parent_id):
     categories = CategoryService.get_child_categories(parent_id)
-    return jsonify([category.to_dict() for category in categories]), 200
+    return jsonify(categories_schema.dump(categories)), 200
 
 
 @categories_bp.route('', methods=['POST'])
@@ -41,10 +47,16 @@ def create_category():
     if not current_user:
         return jsonify({'error': 'User not found'}), 401
 
-    data = request.get_json()
-    if not data or 'name' not in data:
-        return jsonify({'error': 'name is required'}), 400
-    category, error = CategoryService.create_category(data, requesting_user=current_user)
+    json_data = request.get_json()
+    if not json_data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    try:
+        validated_data = category_schema.load(json_data)
+    except ValidationError as err:
+        return jsonify(err.messages), 422
+
+    category, error = CategoryService.create_category(validated_data, requesting_user=current_user)
 
     if error:
         status_code = 403 if "Access denied" in error else 400
@@ -52,7 +64,7 @@ def create_category():
 
     return jsonify({
         'message': 'Category created successfully',
-        'category': category.to_dict()
+        'category': category_schema.dump(category)
     }), 201
 
 
@@ -65,11 +77,15 @@ def update_category(category_id):
     if not current_user:
         return jsonify({'error': 'User not found'}), 401
 
-    data = request.get_json()
-    if not data:
+    json_data = request.get_json()
+    if not json_data:
         return jsonify({'error': 'No data provided'}), 400
+    try:
+        validated_data = category_schema.load(json_data, partial=True)
+    except ValidationError as err:
+        return jsonify(err.messages), 422
 
-    category, error = CategoryService.update_category(category_id, data, requesting_user=current_user)
+    category, error = CategoryService.update_category(category_id, validated_data, requesting_user=current_user)
 
     if error:
         status_code = 403 if "Access denied" in error else 400
@@ -78,7 +94,7 @@ def update_category(category_id):
 
     return jsonify({
         'message': 'Category updated successfully',
-        'category': category.to_dict()
+        'category': category_schema.dump(category)
     }), 200
 
 

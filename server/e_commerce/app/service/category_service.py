@@ -1,6 +1,6 @@
-from datetime import datetime
 from app import db
 from app.models.category import Category
+from datetime import datetime
 
 
 class CategoryService:
@@ -22,19 +22,19 @@ class CategoryService:
 
     @staticmethod
     def create_category(data, requesting_user):
-        # 1. Yetki Kontrolü
         if requesting_user.role != 'admin':
             return None, "Access denied. Only admins can create categories."
 
-        name = data.get('name')
         parent_id = data.get('parent_id')
-
         if parent_id:
             parent = Category.query.filter_by(id=parent_id, is_deleted=False).first()
             if not parent:
                 return None, "Parent category not found"
 
-        category = Category(name=name, parent_id=parent_id)
+        category = Category(
+            name=data['name'],
+            parent_id=parent_id
+        )
 
         try:
             db.session.add(category)
@@ -55,7 +55,6 @@ class CategoryService:
 
         if 'parent_id' in data:
             new_parent_id = data['parent_id']
-
             if new_parent_id == category.id:
                 return None, "A category cannot be its own parent"
 
@@ -64,10 +63,8 @@ class CategoryService:
                 if not new_parent or new_parent.is_deleted:
                     return None, "Parent category not found"
 
-        allowed_fields = ['name', 'parent_id']
-        for field in allowed_fields:
-            if field in data and data[field] is not None:
-                setattr(category, field, data[field])
+        for key, value in data.items():
+            setattr(category, key, value)
 
         try:
             db.session.commit()
@@ -86,9 +83,9 @@ class CategoryService:
             return False, "Category not found"
 
         active_children_count = Category.query.filter_by(parent_id=category_id, is_deleted=False).count()
-
         if active_children_count > 0:
             return False, "Category has active subcategories. Move or delete them first."
+
         try:
             category.is_deleted = True
             category.deleted_at = datetime.utcnow()
