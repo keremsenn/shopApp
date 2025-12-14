@@ -26,15 +26,6 @@ class User(db.Model):
     
     def check_password(self, password):
         return check_password_hash(self.password, password)
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'fullname': self.fullname,
-            'email': self.email,
-            'phone': self.phone,
-            'role': self.role,
-            'created_at': self.created_at.isoformat() if self.created_at else None
-        }
+
 
 
