@@ -3,7 +3,7 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 from flask import current_app
 from app import db
-from app.models import Category
+from app.models.category import Category
 from app.models.product import Product
 from app.models.product_image import ProductImage
 from config import Config
@@ -31,20 +31,18 @@ class ProductService:
         if requesting_user.role not in ['seller', 'admin']:
             return None, "Only sellers and admins can create products"
 
-        category_id = data.get('category_id')
-        if category_id:
-            category = Category.query.filter_by(id=category_id, is_deleted=False).first()
-            if not category:
-                return None, "Invalid Category ID"
+        category = Category.query.filter_by(id=data['category_id'], is_deleted=False).first()
+        if not category:
+            return None, "Invalid Category ID"
 
         product = Product(
             seller_id=requesting_user.id,
-            category_id=data.get('category_id'),
-            name=data.get('name'),
+            category_id=data['category_id'],
+            name=data['name'],
             description=data.get('description'),
-            price=data.get('price'),
+            price=data['price'],
             stock=data.get('stock', 0),
-            rating=data.get('rating', 0.0)
+            rating=0.0
         )
 
         try:
@@ -63,19 +61,15 @@ class ProductService:
 
         if requesting_user.role != 'admin' and product.seller_id != requesting_user.id:
             return None, "Access denied"
-
-        allowed_fields = ['name', 'description', 'price', 'stock', 'rating', 'category_id']
-
-        if 'category_id' in data and data['category_id'] is not None:
+        if 'category_id' in data:
             category = Category.query.filter_by(id=data['category_id'], is_deleted=False).first()
             if not category:
-                return None, "Invalid Category ID: Category does not exist."
-
-        for field, value in data.items():
-            if field in allowed_fields and value is not None:
-                setattr(product, field, value)
+                return None, "Invalid Category ID"
 
         try:
+            for key, value in data.items():
+                setattr(product, key, value)
+
             db.session.commit()
             return product, None
         except Exception as e:
@@ -99,8 +93,6 @@ class ProductService:
         except Exception as e:
             db.session.rollback()
             return False, str(e)
-
-
     @staticmethod
     def allowed_file(filename):
         return '.' in filename and \
@@ -129,7 +121,7 @@ class ProductService:
             return None, f"Error saving file: {str(e)}"
 
     @staticmethod
-    def add_product_image(product_id, requesting_user, url=None, file=None):
+    def add_product_images(product_id, requesting_user, files):
         product = Product.query.filter_by(id=product_id, is_deleted=False).first()
         if not product:
             return None, "Product not found"
@@ -137,22 +129,37 @@ class ProductService:
         if requesting_user.role != 'admin' and product.seller_id != requesting_user.id:
             return None, "Access denied"
 
-        final_url = url
-        if file:
-            saved_path, error = ProductService.save_uploaded_file(file, product_id)
-            if error:
-                return None, error
-            final_url = saved_path
+        if not files:
+            return None, "No files provided"
 
-        if not final_url:
-            return None, "Either URL or file must be provided"
-
-        image = ProductImage(product_id=product_id, url=final_url)
+        saved_images = []
+        errors = []
 
         try:
-            db.session.add(image)
+            for file in files:
+                # Dosya adı boşsa atla (Postman bazen boş gönderebilir)
+                if file.filename == '':
+                    continue
+
+                # Yardımcı metodumuzu kullanarak dosyayı diske kaydet
+                saved_path, error = ProductService.save_uploaded_file(file, product_id)
+
+                if error:
+                    errors.append(f"{file.filename}: {error}")
+                    continue  # Hatalı dosyayı geç, diğerlerini yüklemeye devam et
+
+                # Başarılıysa DB nesnesini oluştur
+                new_image = ProductImage(product_id=product_id, url=saved_path)
+                db.session.add(new_image)
+                saved_images.append(new_image)
+
+            if not saved_images and errors:
+                # Hiçbiri yüklenemediyse hata dön
+                return None, f"Upload failed: {', '.join(errors)}"
+
             db.session.commit()
-            return image, None
+            return saved_images, None  # Listeyi geri döndür
+
         except Exception as e:
             db.session.rollback()
             return None, str(e)
@@ -164,19 +171,17 @@ class ProductService:
             return False, "Image not found"
 
         product = Product.query.get(image.product_id)
-
         if requesting_user.role != 'admin':
             if not product or product.seller_id != requesting_user.id:
                 return False, "Access denied"
 
         if image.url and not image.url.startswith(('http://', 'https://')):
             full_path = os.path.join(current_app.root_path, 'static', image.url)
-
             if os.path.exists(full_path):
                 try:
                     os.remove(full_path)
-                except Exception as e:
-                    print(f"Warning: Could not delete file {full_path}: {e}")
+                except Exception:
+                    pass
 
         try:
             db.session.delete(image)
