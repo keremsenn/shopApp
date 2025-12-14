@@ -11,4 +11,4 @@ class RegisterSchema(Schema):
         required=True,
         validate=validate.Length(min=6, error="Şifre en az 6 karakter olmalıdır.")
     )
-    phone = fields.Str(missing=None)
+    phone = fields.Str(load_default=None)

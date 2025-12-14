@@ -16,7 +16,7 @@ class UserSchema(Schema):
             ["customer", "seller", "admin"],
             error="Geçersiz rol. Sadece customer, seller veya admin olabilir."
         ),
-        missing='customer'
+        load_default='customer'
     )
 class UserUpdateSchema(UserSchema):
     fullname = fields.Str()
