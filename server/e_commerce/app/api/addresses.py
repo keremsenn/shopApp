@@ -1,8 +1,13 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from marshmallow import ValidationError
 from app.service.address_service import AddressService
+from app.schemas.address_schema import AddressSchema
 
 addresses_bp = Blueprint('addresses', __name__)
+
+address_schema = AddressSchema()
+addresses_schema = AddressSchema(many=True)
 
 
 @addresses_bp.route('', methods=['GET'])
@@ -10,42 +15,36 @@ addresses_bp = Blueprint('addresses', __name__)
 def get_user_addresses():
     current_user_id = int(get_jwt_identity())
     addresses = AddressService.get_user_addresses(current_user_id)
-    return jsonify([address.to_dict() for address in addresses]), 200
+    return jsonify(addresses_schema.dump(addresses)), 200
 
 
 @addresses_bp.route('/<int:address_id>', methods=['GET'])
 @jwt_required()
 def get_address(address_id):
     current_user_id = int(get_jwt_identity())
-
     address = AddressService.get_address_by_id(address_id, current_user_id)
 
     if not address:
         return jsonify({'error': 'Address not found'}), 404
-
-    return jsonify(address.to_dict()), 200
+    return jsonify(address_schema.dump(address)), 200
 
 
 @addresses_bp.route('', methods=['POST'])
 @jwt_required()
 def create_address():
     current_user_id = int(get_jwt_identity())
-    data = request.get_json()
+    json_data = request.get_json()
 
-    if not data:
+    if not json_data:
         return jsonify({'error': 'No data provided'}), 400
-
-    required_fields = ['title', 'city', 'district', 'detail']
-    for field in required_fields:
-        if field not in data:
-            return jsonify({'error': f'{field} is required'}), 400
+    try:
+        validated_data = address_schema.load(json_data)
+    except ValidationError as err:
+        return jsonify(err.messages), 422
 
     address, error = AddressService.create_address(
         user_id=current_user_id,
-        title=data['title'],
-        city=data['city'],
-        district=data['district'],
-        detail=data['detail']
+        data=validated_data
     )
 
     if error:
@@ -53,7 +52,7 @@ def create_address():
 
     return jsonify({
         'message': 'Address created successfully',
-        'address': address.to_dict()
+        'address': address_schema.dump(address)
     }), 201
 
 
@@ -61,12 +60,16 @@ def create_address():
 @jwt_required()
 def update_address(address_id):
     current_user_id = int(get_jwt_identity())
-    data = request.get_json()
+    json_data = request.get_json()
 
-    if not data:
+    if not json_data:
         return jsonify({'error': 'No data provided'}), 400
+    try:
+        validated_data = address_schema.load(json_data, partial=True)
+    except ValidationError as err:
+        return jsonify(err.messages), 422
 
-    address, error = AddressService.update_address(address_id, current_user_id, **data)
+    address, error = AddressService.update_address(address_id, current_user_id, validated_data)
 
     if error:
         status_code = 404 if "not found" in error else 400
@@ -74,7 +77,7 @@ def update_address(address_id):
 
     return jsonify({
         'message': 'Address updated successfully',
-        'address': address.to_dict()
+        'address': address_schema.dump(address)
     }), 200
 
 

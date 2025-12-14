@@ -1,6 +1,6 @@
-from datetime import datetime
 from app import db
 from app.models.address import Address
+from datetime import datetime
 
 
 class AddressService:
@@ -14,17 +14,17 @@ class AddressService:
         return Address.query.filter_by(id=address_id, user_id=user_id, is_deleted=False).first()
 
     @staticmethod
-    def create_address(user_id, title, city, district, detail):
+    def create_address(user_id, data):
         count = Address.query.filter_by(user_id=user_id, is_deleted=False).count()
         if count >= 10:
             return None, "Address limit reached (Max 10)"
 
         address = Address(
             user_id=user_id,
-            title=title,
-            city=city,
-            district=district,
-            detail=detail
+            title=data['title'],
+            city=data['city'],
+            district=data['district'],
+            detail=data['detail']
         )
 
         try:
@@ -36,18 +36,15 @@ class AddressService:
             return None, str(e)
 
     @staticmethod
-    def update_address(address_id, user_id, **kwargs):
+    def update_address(address_id, user_id, data):
         address = Address.query.filter_by(id=address_id, user_id=user_id, is_deleted=False).first()
 
         if not address:
             return None, "Address not found or access denied"
-
-        allowed_fields = ["title", "city", "district", "detail"]
-        for field, value in kwargs.items():
-            if field in allowed_fields and value is not None:
-                setattr(address, field, value)
-
         try:
+            for key, value in data.items():
+                setattr(address, key, value)
+
             db.session.commit()
             return address, None
         except Exception as e:
