@@ -9,7 +9,7 @@ from app.service.cart_service import CartService
 class OrderService:
     @staticmethod
     def get_all_orders():
-        return Order.query.all()
+        return Order.query.order_by(Order.created_at.desc()).all()
 
     @staticmethod
     def get_order_by_id(order_id):
@@ -17,16 +17,10 @@ class OrderService:
 
     @staticmethod
     def get_orders_by_user(user_id):
-        # Kullanıcı silinmişse siparişlerini göstermemek tercih meselesidir,
-        # ancak genelde sipariş geçmişi kaybolmaz. Yine de user kontrolü ekledim.
-        user = User.query.filter_by(id=user_id, is_deleted=False).first()
-        if not user:
-            return []
         return Order.query.filter_by(user_id=user_id).order_by(Order.created_at.desc()).all()
 
     @staticmethod
     def create_order_from_cart(user_id, address_id):
-
         user = User.query.filter_by(id=user_id, is_deleted=False).first()
         if not user:
             return None, "User not found"
@@ -40,6 +34,7 @@ class OrderService:
             return None, "Invalid delivery address"
 
         total_price = 0
+
         for item in cart.items:
             if item.product.is_deleted:
                 return None, f"Product '{item.product.name}' is no longer available"
@@ -51,7 +46,6 @@ class OrderService:
             user_id=user_id,
             total_price=total_price,
             status='pending',
-
             shipping_title=address.title,
             shipping_city=address.city,
             shipping_district=address.district,
@@ -83,7 +77,6 @@ class OrderService:
 
     @staticmethod
     def create_order_direct(user_id, address_id, items_data):
-
         user = User.query.filter_by(id=user_id, is_deleted=False).first()
         if not user:
             return None, "User not found"
@@ -98,13 +91,14 @@ class OrderService:
         for item in items_data:
             product = Product.query.filter_by(id=item["product_id"], is_deleted=False).first()
             if not product:
-                return None, f"Product {item['product_id']} not found"
+                return None, f"Product ID {item['product_id']} not found"
 
-            qty = item.get('quantity', 1)
+            qty = item['quantity']
             if product.stock < qty:
                 return None, f"Insufficient stock for: {product.name}"
 
             total_price += float(product.price) * qty
+
             order_items_buffer.append({
                 'product': product,
                 'quantity': qty,
@@ -133,7 +127,6 @@ class OrderService:
                     unit_price=buffer_item['price']
                 )
                 db.session.add(order_item)
-                # Stok Düş
                 buffer_item['product'].stock -= buffer_item['quantity']
 
             db.session.commit()
@@ -166,7 +159,6 @@ class OrderService:
 
     @staticmethod
     def cancel_order(order_id, user_id, is_admin=False):
-
         order = Order.query.get(order_id)
         if not order:
             return False, "Order not found"
@@ -183,7 +175,7 @@ class OrderService:
         try:
             for item in order.items:
                 product = Product.query.filter_by(id=item.product_id).first()
-                if product and not product.is_deleted:
+                if product:
                     product.stock += item.quantity
 
             order.status = 'cancelled'

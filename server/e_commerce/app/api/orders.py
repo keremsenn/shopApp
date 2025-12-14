@@ -1,9 +1,15 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from marshmallow import ValidationError
 from app.service.order_service import OrderService
 from app.service.user_service import UserService
+from app.schemas.order_schema import OrderSchema, OrderCreateItemSchema
 
 orders_bp = Blueprint('orders', __name__)
+
+order_schema = OrderSchema()
+orders_schema = OrderSchema(many=True)
+direct_order_item_schema = OrderCreateItemSchema(many=True)  # Liste validasyonu için
 
 
 @orders_bp.route('', methods=['GET'])
@@ -19,8 +25,7 @@ def get_orders():
         orders = OrderService.get_all_orders()
     else:
         orders = OrderService.get_orders_by_user(current_user_id)
-
-    return jsonify([order.to_dict() for order in orders]), 200
+    return jsonify(orders_schema.dump(orders)), 200
 
 
 @orders_bp.route('/<int:order_id>', methods=['GET'])
@@ -33,26 +38,31 @@ def get_order_detail(order_id):
     if not order:
         return jsonify({'error': 'Order not found'}), 404
 
-    # Yetki Kontrolü: Admin değilse ve sipariş kullanıcının değilse hata ver
     if current_user.role != 'admin' and order.user_id != current_user_id:
         return jsonify({'error': 'Access denied'}), 403
 
-    return jsonify(order.to_dict()), 200
+    return jsonify(order_schema.dump(order)), 200
 
 
 @orders_bp.route('', methods=['POST'])
 @jwt_required()
 def create_order():
-
     current_user_id = int(get_jwt_identity())
-    data = request.get_json() or {}
+    json_data = request.get_json() or {}
 
-    address_id = data.get('address_id')
+    address_id = json_data.get('address_id')
+
     if not address_id:
         return jsonify({'error': 'address_id is required'}), 400
 
-    if 'items' in data and data['items']:
-        order, error = OrderService.create_order_direct(current_user_id, address_id, data['items'])
+    if 'items' in json_data and json_data['items']:
+        try:
+            validated_items = direct_order_item_schema.load(json_data['items'])
+        except ValidationError as err:
+            return jsonify(err.messages), 422
+
+        order, error = OrderService.create_order_direct(current_user_id, address_id, validated_items)
+
     else:
         order, error = OrderService.create_order_from_cart(current_user_id, address_id)
 
@@ -61,7 +71,7 @@ def create_order():
 
     return jsonify({
         'message': 'Order created successfully',
-        'order': order.to_dict()
+        'order': order_schema.dump(order)
     }), 201
 
 
@@ -74,8 +84,8 @@ def update_order_status(order_id):
     if not current_user or current_user.role != 'admin':
         return jsonify({'error': 'Admin access required'}), 403
 
-    data = request.get_json()
-    status = data.get('status')
+    json_data = request.get_json() or {}
+    status = json_data.get('status')
 
     if not status:
         return jsonify({'error': 'status is required'}), 400
@@ -86,7 +96,7 @@ def update_order_status(order_id):
 
     return jsonify({
         'message': 'Order status updated successfully',
-        'order': order.to_dict()
+        'order': order_schema.dump(order)
     }), 200
 
 
