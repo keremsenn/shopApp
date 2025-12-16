@@ -2,16 +2,19 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    kotlin("plugin.serialization") version "2.0.21"
+    id("kotlin-kapt")
+    id("dagger.hilt.android.plugin")
 }
 
 android {
     namespace = "com.keremsen.e_commerce"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.keremsen.e_commerce"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -40,6 +43,43 @@ android {
 }
 
 dependencies {
+    // DataStore
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.datastore.core)
+
+    // Jetpack Compose Integration (Navigation)
+    implementation(libs.androidx.navigation.compose)
+
+    // Testing Navigation
+    androidTestImplementation(libs.androidx.navigation.testing)
+
+    // JSON serialization library
+    implementation(libs.kotlinx.serialization.json)
+
+    // Retrofit & Gson
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+
+    // Hilt (Dependency Injection)
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.android.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
+
+    // ViewModel
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+
+    // Coil for image loading
+    implementation(libs.coil.compose)
+
+    // OkHttp Logging
+    implementation(libs.logging.interceptor)
+    //iccons
+    implementation(libs.androidx.material.icons.extended)
+    
+    implementation("androidx.compose.runtime:runtime-livedata:1.10.0")
+
+    implementation(libs.lottie.compose)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
