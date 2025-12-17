@@ -77,7 +77,7 @@ dependencies {
     //iccons
     implementation(libs.androidx.material.icons.extended)
     
-    implementation("androidx.compose.runtime:runtime-livedata:1.10.0")
+    implementation(libs.androidx.runtime.livedata)
 
     implementation(libs.lottie.compose)
 
