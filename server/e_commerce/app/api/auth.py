@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 from marshmallow import ValidationError
 from app.service.auth_service import AuthService
 from app.schemas.auth_schema import RegisterSchema, LoginSchema
@@ -47,5 +48,13 @@ def login():
 
     return jsonify({
         'user': user_schema.dump(result['user']),
-        'access_token': result['access_token']
+        'access_token': result['access_token'],
+        'refresh_token':result['refresh_token']
     }), 200
+
+@auth_bp.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+    current_user_id = get_jwt_identity()
+    new_access_token = create_access_token(identity=current_user_id)
+    return jsonify({'access_token': new_access_token}), 200

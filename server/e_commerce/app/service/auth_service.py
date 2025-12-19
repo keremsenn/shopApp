@@ -1,6 +1,6 @@
 from app import db
 from app.models.user import User
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, create_refresh_token
 from datetime import datetime
 
 
@@ -55,9 +55,12 @@ class AuthService:
             return None, "Invalid email or password"
 
         additional_claims = {"role": user.role}
+
         access_token = create_access_token(identity=str(user.id), additional_claims=additional_claims)
+        refresh_token = create_refresh_token(identity=str(user.id))
 
         return {
             'user': user,
-            'access_token': access_token
+            'access_token': access_token,
+            'refresh_token': refresh_token
         }, None
