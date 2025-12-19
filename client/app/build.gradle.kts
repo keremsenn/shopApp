@@ -78,7 +78,7 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     
     implementation(libs.androidx.runtime.livedata)
-
+    implementation("androidx.core:core-splashscreen:1.0.1")
     implementation(libs.lottie.compose)
 
     implementation(libs.androidx.core.ktx)
