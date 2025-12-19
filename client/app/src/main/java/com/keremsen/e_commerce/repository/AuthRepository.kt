@@ -13,5 +13,7 @@ class AuthRepository @Inject constructor(
     suspend fun register(request: RegisterRequest) = apiService.register(request)
 
     suspend fun login(request: LoginRequest) = apiService.login(request)
+
+    suspend fun refreshToken(token: String) = apiService.refreshToken("Bearer $token")
 }
 
