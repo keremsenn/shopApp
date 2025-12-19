@@ -4,14 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
-import com.keremsen.e_commerce.api.AddressApiService
-import com.keremsen.e_commerce.api.AuthApiService
-import com.keremsen.e_commerce.api.CartApiService
-import com.keremsen.e_commerce.api.CategoryApiService
-import com.keremsen.e_commerce.api.OrderApiService
-import com.keremsen.e_commerce.api.ProductApiService
-import com.keremsen.e_commerce.api.SellerRequestApiService
-import com.keremsen.e_commerce.api.UserApiService
+import com.keremsen.e_commerce.api.*
 import com.keremsen.e_commerce.data.local.DataStoreManager
 import com.keremsen.e_commerce.data.remote.*
 import dagger.Module
@@ -32,8 +25,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    // Emülatör kullanıyorsan: "http://10.0.2.2:5000/"
-    private const val BASE_URL = "http://192.168.0.3:5000/"
+    private const val BASE_URL = "http://192.168.0.7:5000/"
 
     @Provides
     @Singleton
@@ -49,16 +41,28 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient {
+    fun provideAuthAuthenticator(
+        dataStoreManager: DataStoreManager,
+        authApiService: javax.inject.Provider<AuthApiService> // Provider kullanımı dairesel bağımlılığı çözer
+    ): AuthAuthenticator = AuthAuthenticator(dataStoreManager, authApiService)
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(
+        authInterceptor: AuthInterceptor,
+        authAuthenticator: AuthAuthenticator
+    ): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
+
         return OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
+            .authenticator(authAuthenticator)
             .addInterceptor(loggingInterceptor)
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.SECONDS)
+            .writeTimeout(10, TimeUnit.SECONDS)
             .build()
     }
 
@@ -71,6 +75,8 @@ object AppModule {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
+
+    // --- API SERVİSLERİ ---
 
     @Provides
     @Singleton
@@ -94,7 +100,7 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideCategoryService(retrofit: Retrofit): CategoryApiService { return retrofit.create(CategoryApiService::class.java) }
+    fun provideCategoryService(retrofit: Retrofit): CategoryApiService = retrofit.create(CategoryApiService::class.java)
 
     @Provides
     @Singleton
@@ -102,6 +108,9 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAddressService(retrofit: Retrofit): AddressApiService = retrofit.create(AddressApiService::class.java)
+    fun provideFavoriteApiService(retrofit: Retrofit): FavoriteApiService { return retrofit.create(FavoriteApiService::class.java) }
 
+    @Provides
+    @Singleton
+    fun provideAddressService(retrofit: Retrofit): AddressApiService = retrofit.create(AddressApiService::class.java)
 }
