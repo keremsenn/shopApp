@@ -5,6 +5,6 @@ data class Cart(
     val user_id: Int,
     val created_at: String?,
     val items: List<CartItem> = emptyList(),
-    val total: Double
+    val total_price: Double
 )
 
