@@ -12,4 +12,3 @@ data class Product(
     val is_deleted: Boolean,
     val images: List<ProductImage>? = null
 )
-
