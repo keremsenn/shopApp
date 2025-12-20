@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.keremsen.e_commerce.api.*
 import com.keremsen.e_commerce.data.local.DataStoreManager
 import com.keremsen.e_commerce.data.remote.*
+import com.keremsen.e_commerce.utils.Constants
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,7 +26,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    private const val BASE_URL = "http://192.168.0.7:5000/"
+    private const val BASE_URL = Constants.BASE_URL
 
     @Provides
     @Singleton
@@ -101,10 +102,6 @@ object AppModule {
     @Provides
     @Singleton
     fun provideCategoryService(retrofit: Retrofit): CategoryApiService = retrofit.create(CategoryApiService::class.java)
-
-    @Provides
-    @Singleton
-    fun provideSellerRequestService(retrofit: Retrofit): SellerRequestApiService = retrofit.create(SellerRequestApiService::class.java)
 
     @Provides
     @Singleton
