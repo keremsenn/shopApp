@@ -1,6 +1,5 @@
 package com.keremsen.e_commerce.view
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,30 +25,29 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.keremsen.e_commerce.navigation.Screen
 import com.keremsen.e_commerce.viewmodel.AuthViewModel
+import com.keremsen.e_commerce.viewmodel.UserViewModel
 
 @Composable
 fun ProfileScreen(
     navController: NavController,
-    authViewModel: AuthViewModel = hiltViewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    userViewModel: UserViewModel = hiltViewModel(),
+    onGoToFavorites: () -> Unit
 ) {
-    // ViewModel'den anlık kullanıcı verisini dinliyoruz
-    val currentUser by authViewModel.currentUser.collectAsState()
+    val userProfile by userViewModel.userProfile.collectAsState()
 
-    // Sayfa açıldığında kullanıcı verisi boşsa tekrar iste (Garanti olsun)
     LaunchedEffect(Unit) {
-        if (currentUser == null) {
-            authViewModel.getCurrentUser()
-        }
+        userViewModel.loadMyProfile()
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F5F5)) // Hafif gri arka plan
+            .background(Color(0xFFF5F5F5))
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // --- 1. ÜST PROFİL KARTI ---
+        // ... (Üst Profil Kartı aynı kalıyor) ...
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -62,7 +60,6 @@ fun ProfileScreen(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Profil İkonu (Yuvarlak)
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -77,29 +74,21 @@ fun ProfileScreen(
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
-
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // Kullanıcı Adı ve Maili
                 Text(
-                    text = currentUser?.fullname ?: "Kullanıcı",
+                    text = userProfile?.fullname ?: "Kullanıcı",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )
                 Text(
-                    text = currentUser?.email ?: "Email yükleniyor...",
+                    text = userProfile?.email ?: "Email yükleniyor...",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
-
-                if (!currentUser?.phone.isNullOrEmpty()) {
+                if (!userProfile?.phone.isNullOrEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = currentUser?.phone ?: "",
-                        fontSize = 14.sp,
-                        color = Color.Gray
-                    )
+                    Text(text = userProfile?.phone ?: "", fontSize = 14.sp, color = Color.Gray)
                 }
             }
         }
@@ -114,33 +103,38 @@ fun ProfileScreen(
                 .padding(vertical = 8.dp)
         ) {
             ProfileMenuItem(
+                icon = Icons.Default.Edit,
+                title = "Profili Düzenle",
+                onClick = { navController.navigate(Screen.ProfileEdit.route) }
+            )
+            ProfileMenuItem(
                 icon = Icons.Default.ShoppingBag,
                 title = "Siparişlerim",
-                onClick = { /* Navigasyon eklenecek */ }
+                onClick = { navController.navigate(Screen.OrderList.route) }
             )
             Divider(color = Color.LightGray.copy(alpha = 0.3f))
 
             ProfileMenuItem(
                 icon = Icons.Default.LocationOn,
                 title = "Adreslerim",
-                onClick = { /* Navigasyon eklenecek */ }
+                onClick = { navController.navigate(Screen.AddressList.route) }
             )
             Divider(color = Color.LightGray.copy(alpha = 0.3f))
 
+            // DEĞİŞİKLİK BURADA: onGoToFavorites'i çağırıyoruz
             ProfileMenuItem(
                 icon = Icons.Default.Favorite,
                 title = "Favorilerim",
-                onClick = { /* Navigasyon eklenecek */ }
+                onClick = { onGoToFavorites() }
             )
         }
 
-        Spacer(modifier = Modifier.weight(1f)) // Kalan boşluğu it
+        Spacer(modifier = Modifier.weight(1f))
 
-        // --- 3. ÇIKIŞ YAP BUTONU ---
+        // ... (Çıkış Yap butonu aynı kalıyor) ...
         Button(
             onClick = {
-                authViewModel.logout() // Tokenları sil
-                // Login ekranına git ve geri dönüşü engelle (popUpTo 0)
+                authViewModel.logout()
                 navController.navigate(Screen.Login.route) {
                     popUpTo(0)
                 }
@@ -148,28 +142,20 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEBEE)), // Açık kırmızı
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEBEE)),
             shape = RoundedCornerShape(12.dp),
             elevation = ButtonDefaults.buttonElevation(0.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Outlined.ExitToApp,
-                    contentDescription = null,
-                    tint = Color.Red
-                )
+                Icon(Icons.Outlined.ExitToApp, contentDescription = null, tint = Color.Red)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Çıkış Yap",
-                    color = Color.Red,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("Çıkış Yap", color = Color.Red, fontWeight = FontWeight.Bold)
             }
         }
     }
 }
 
-// Menü Elemanı için Yardımcı Composable
+// ... (ProfileMenuItem fonksiyonu aynı kalıyor) ...
 @Composable
 fun ProfileMenuItem(
     icon: ImageVector,
