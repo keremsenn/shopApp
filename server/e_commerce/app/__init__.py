@@ -34,7 +34,6 @@ def create_app(config_class=Config):
     from app.api.cart import cart_bp
     from app.api.orders import orders_bp
     from app.api.addresses import addresses_bp
-    from app.api.seller_request_routes import seller_req_bp
     from app.api.favorite import favorites_bp
 
 
@@ -45,7 +44,6 @@ def create_app(config_class=Config):
     app.register_blueprint(cart_bp, url_prefix='/api/cart')
     app.register_blueprint(orders_bp, url_prefix='/api/orders')
     app.register_blueprint(addresses_bp, url_prefix='/api/addresses')
-    app.register_blueprint(seller_req_bp, url_prefix='/api/seller-requests')
     app.register_blueprint(favorites_bp, url_prefix='/api/favorites')
 
     return app
