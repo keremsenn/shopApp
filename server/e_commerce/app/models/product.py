@@ -10,7 +10,6 @@ class Product(db.Model):
     description = db.Column(db.Text)
     price = db.Column(db.Numeric(10, 2), nullable=False)
     stock = db.Column(db.Integer, default=0, nullable=False)
-    rating = db.Column(db.Numeric(3, 2), default=0.0)
     is_deleted = db.Column(db.Boolean, default=False, nullable=False)
     deleted_at = db.Column(db.DateTime, nullable=True)
     # Relationships

@@ -10,7 +10,7 @@ class User(db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False, index=True)
     password = db.Column(db.String(255), nullable=False)
     phone = db.Column(db.String(20))
-    role = db.Column(db.String(20), nullable=False, default='customer')  # customer, seller, admin
+    role = db.Column(db.String(20), nullable=False, default='customer')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_deleted = db.Column(db.Boolean, default=False, nullable=False)
     deleted_at = db.Column(db.DateTime, nullable=True)
