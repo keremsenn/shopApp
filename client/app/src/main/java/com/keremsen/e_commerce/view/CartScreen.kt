@@ -91,7 +91,6 @@ fun CartScreen(
         },
         bottomBar = {
             if (cart?.items?.isNotEmpty() == true) {
-                // ⭐ cart!!.total_price bir Double'dır. Aşağıdaki fonksiyonda doğru işlenecek.
                 CartSummaryBottomBar(
                     totalPrice = cart!!.total_price,
                     onConfirmClick = {
@@ -184,8 +183,6 @@ fun CartItemCard(
                         Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Gray)
                     }
                 }
-
-                // ⭐ DÜZELTME: Fiyat Double olduğu için String template ("") içine alındı
                 Text(
                     text = "${item.product?.price} ₺",
                     color = MaterialTheme.colorScheme.primary,
@@ -201,7 +198,6 @@ fun CartItemCard(
                     IconButton(onClick = onDecrease, modifier = Modifier.size(28.dp)) {
                         Text("-", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     }
-                    // ⭐ DÜZELTME: quantity Int olduğu için String template içine alındı
                     Text(text = "${item.quantity}", modifier = Modifier.padding(horizontal = 8.dp), fontWeight = FontWeight.Bold)
                     IconButton(onClick = onIncrease, modifier = Modifier.size(28.dp)) {
                         Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
@@ -223,11 +219,11 @@ fun CartSummaryBottomBar(totalPrice: Double, onConfirmClick: () -> Unit) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
                 Text("Toplam Tutar:", fontSize = 16.sp, color = Color.Gray)
-                // ⭐ DÜZELTME: totalPrice Double olduğu için String template içine alındı
+
                 Text(
                     text = "$totalPrice ₺",
                     fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold, // Parametre ismini belirttik
+                    fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )
             }

@@ -47,7 +47,6 @@ fun ProfileScreen(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // ... (Üst Profil Kartı aynı kalıyor) ...
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -121,7 +120,6 @@ fun ProfileScreen(
             )
             Divider(color = Color.LightGray.copy(alpha = 0.3f))
 
-            // DEĞİŞİKLİK BURADA: onGoToFavorites'i çağırıyoruz
             ProfileMenuItem(
                 icon = Icons.Default.Favorite,
                 title = "Favorilerim",
@@ -131,7 +129,6 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // ... (Çıkış Yap butonu aynı kalıyor) ...
         Button(
             onClick = {
                 authViewModel.logout()
@@ -155,7 +152,6 @@ fun ProfileScreen(
     }
 }
 
-// ... (ProfileMenuItem fonksiyonu aynı kalıyor) ...
 @Composable
 fun ProfileMenuItem(
     icon: ImageVector,

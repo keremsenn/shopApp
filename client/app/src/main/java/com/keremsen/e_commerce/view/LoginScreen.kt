@@ -79,7 +79,7 @@ fun LoginScreen(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = LoginBackgroundColor // Arka plan rengi burada uygulandı
+        color = LoginBackgroundColor
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
@@ -89,22 +89,16 @@ fun LoginScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // İçerikleri AnimatedVisibility içine alıyoruz
                 AnimatedVisibility(
                     visible = startAnimation,
                     enter = scaleIn(
-                        // Başlangıç ölçeği (0.5 = yarı boyutundan başla)
                         initialScale = 0.5f,
-                        // Animasyon süresi ve yumuşatma eğrisi
                         animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
-                        // Büyümenin merkezi (Varsayılan olarak Center'dır ama netlik için ekledim)
                         transformOrigin = TransformOrigin.Center
                     ) + fadeIn(
-                        // Büyürken aynı zamanda şeffaftan nete geçiş yapsın
                         animationSpec = tween(durationMillis = 800)
                     )
                 ) {
-                    // AnimatedVisibility içindeki sütun, animasyonun uygulanacağı öğeleri gruplar
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
@@ -118,7 +112,6 @@ fun LoginScreen(
 
                         Spacer(modifier = Modifier.height(40.dp))
 
-                        // --- EMAIL INPUT ---
                         OutlinedTextField(
                             value = email,
                             onValueChange = { email = it },
@@ -143,7 +136,6 @@ fun LoginScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // --- PASSWORD INPUT ---
                         OutlinedTextField(
                             value = password,
                             onValueChange = { password = it },
@@ -180,7 +172,6 @@ fun LoginScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // --- LOGIN BUTTON ---
                         Button(
                             onClick = {
                                 when {
@@ -220,8 +211,8 @@ fun LoginScreen(
                             shape = RoundedCornerShape(12.dp),
                             enabled = !isLoading,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.White, // Buton arka planı beyaz olsun
-                                contentColor = LoginBackgroundColor // Buton yazısı teal olsun
+                                containerColor = Color.White,
+                                contentColor = LoginBackgroundColor
                             )
                         ) {
                             if (isLoading) {
@@ -239,7 +230,6 @@ fun LoginScreen(
                         }
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // --- KAYIT OL LİNKİ ---
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.Center,
@@ -251,7 +241,7 @@ fun LoginScreen(
                             )
                             Text(
                                 text = " Kayıt Ol",
-                                color = Color.White , // Link rengi de beyaz olsun
+                                color = Color.White ,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
                                 modifier = Modifier.clickable {

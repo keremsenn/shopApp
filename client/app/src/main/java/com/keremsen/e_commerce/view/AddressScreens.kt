@@ -22,9 +22,6 @@ import com.keremsen.e_commerce.models.entityModel.Address
 import com.keremsen.e_commerce.navigation.Screen
 import com.keremsen.e_commerce.viewmodel.AddressViewModel
 
-// ==========================================
-// 1. ADRES LİSTELEME EKRANI
-// ==========================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddressListScreen(
@@ -36,12 +33,10 @@ fun AddressListScreen(
     val message by viewModel.message.collectAsState()
     val context = LocalContext.current
 
-    // Sayfa açıldığında adresleri getir
     LaunchedEffect(Unit) {
         viewModel.getAddresses()
     }
 
-    // Mesaj (Toast) Gösterimi
     LaunchedEffect(message) {
         message?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
@@ -64,7 +59,6 @@ fun AddressListScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    // Yeni ekleme için ID 0 gönderiyoruz
                     navController.navigate(Screen.AddressAddEdit.createRoute(0))
                 },
                 containerColor = MaterialTheme.colorScheme.primary,
@@ -115,8 +109,6 @@ fun AddressListScreen(
                     }
                 }
             }
-
-            // Liste doluyken yükleme yapılıyorsa (örn: silme işlemi sonrası) üstte bar göster
             if (isLoading && addresses.isNotEmpty()) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter))
             }
@@ -187,28 +179,20 @@ fun AddressItemCard(
     }
 }
 
-// ==========================================
-// 2. ADRES EKLEME / DÜZENLEME EKRANI
-// ==========================================
-// ==========================================
-// 2. ADRES EKLEME / DÜZENLEME EKRANI (GÜNCELLENMİŞ)
-// ==========================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddressAddEditScreen(
     navController: NavController,
-    addressId: Int, // 0 ise Ekle, >0 ise Düzenle
+    addressId: Int,
     viewModel: AddressViewModel = hiltViewModel()
 ) {
-    // 1. ViewModel'deki canlı listeyi dinliyoruz
     val addresses by viewModel.addresses.collectAsState()
 
-    // 2. ID'ye göre düzenlenecek adresi listeden buluyoruz (Canlı takip)
+
     val addressToEdit = remember(addresses, addressId) {
         addresses.find { it.id == addressId }
     }
 
-    // Form Alanları (Başlangıçta boş)
     var title by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
     var district by remember { mutableStateOf("") }
@@ -221,7 +205,6 @@ fun AddressAddEditScreen(
 
     val isEditMode = addressId != 0
 
-    // 3. Adres verisi bulunduğunda (veya liste yüklendiğinde) alanları doldur
     LaunchedEffect(addressToEdit) {
         if (addressToEdit != null) {
             title = addressToEdit.title
@@ -231,14 +214,12 @@ fun AddressAddEditScreen(
         }
     }
 
-    // İşlem başarılı olunca önceki sayfaya dön
     LaunchedEffect(operationSuccess) {
         if (operationSuccess) {
             navController.popBackStack()
         }
     }
 
-    // Hata mesajı varsa göster
     LaunchedEffect(message) {
         message?.let {
             if (!operationSuccess) {

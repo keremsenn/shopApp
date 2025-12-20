@@ -68,7 +68,7 @@ class FavoriteViewModel @Inject constructor(
                 val response = favoriteRepository.removeFavorite(productId)
                 if (response.isSuccessful) {
                     _message.value = response.body()?.message ?: "Favorilerden çıkarıldı"
-                    getFavorites() // Listeyi güncelle
+                    getFavorites()
                 } else {
                     _message.value = "Silme başarısız"
                 }

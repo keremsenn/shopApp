@@ -39,7 +39,6 @@ fun OrderListScreen(
     val orders by viewModel.orders.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    // Sayfa açıldığında siparişleri çek
     LaunchedEffect(Unit) {
         viewModel.getOrders()
     }
@@ -66,7 +65,7 @@ fun OrderListScreen(
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (orders.isEmpty()) {
-                // Sipariş Yoksa
+
                 Column(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -81,7 +80,7 @@ fun OrderListScreen(
                     Text("Henüz bir siparişiniz bulunmuyor.", color = Color.Gray, fontSize = 16.sp)
                 }
             } else {
-                // Sipariş Listesi
+
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -115,7 +114,6 @@ fun OrderCard(order: Order) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
-            // --- ÜST KISIM: Tarih ve Dinamik Durum ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -132,7 +130,6 @@ fun OrderCard(order: Order) {
                     )
                 }
 
-                // Status Chip (Renkli Durum Kutusu)
                 Surface(
                     color = containerColor,
                     shape = RoundedCornerShape(8.dp)
@@ -149,7 +146,6 @@ fun OrderCard(order: Order) {
 
             Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
 
-            // --- ORTA KISIM: Ürün Resimleri ---
             if (!order.items.isNullOrEmpty()) {
                 Text("Ürünler", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(bottom = 8.dp))
                 LazyRow(
@@ -170,7 +166,6 @@ fun OrderCard(order: Order) {
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // --- 2. ADIM: Adres ve Fiyat Bilgisi ---
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -178,7 +173,6 @@ fun OrderCard(order: Order) {
                     .padding(12.dp),
                 verticalAlignment = Alignment.Top
             ) {
-                // Konum İkonu
                 Icon(
                     Icons.Default.LocationOn,
                     contentDescription = null,
@@ -188,7 +182,6 @@ fun OrderCard(order: Order) {
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Adres Detayları
                 Column(modifier = Modifier.weight(1f)) {
                     // Adres Başlığı (Örn: Ev)
                     Text(
@@ -213,7 +206,6 @@ fun OrderCard(order: Order) {
                     )
                 }
 
-                // Fiyat (Sağ Taraf)
                 Column(horizontalAlignment = Alignment.End) {
                     Text("Tutar", fontSize = 12.sp, color = Color.Gray)
                     Text(
@@ -225,7 +217,6 @@ fun OrderCard(order: Order) {
                 }
             }
 
-            // Sipariş ID (En altta küçük bilgi)
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Sipariş No: #${order.id}",
@@ -237,7 +228,6 @@ fun OrderCard(order: Order) {
     }
 }
 
-// Basit Tarih Formatlayıcı
 fun formatDate(dateString: String): String {
     return try {
         val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
@@ -245,6 +235,6 @@ fun formatDate(dateString: String): String {
         val date = inputFormat.parse(dateString)
         outputFormat.format(date ?: "")
     } catch (e: Exception) {
-        dateString.take(10) // Hata olursa sadece tarihi (ilk 10 karakter) göster
+        dateString.take(10)
     }
 }

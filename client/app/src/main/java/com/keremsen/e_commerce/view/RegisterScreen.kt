@@ -61,16 +61,10 @@ fun RegisterScreen(
         startAnimation = true
     }
 
-    // ⭐ YÖNLENDİRME MANTIĞI GÜNCELLENDİ
     LaunchedEffect(authState) {
         if (authState != null) {
             Toast.makeText(context, "Kayıt başarılı! Lütfen giriş yapın.", Toast.LENGTH_LONG).show()
-
-            // Eğer ViewModel'ında varsa state'i temizle (Login ekranında otomatik Home'a atmaması için)
-            // viewModel.resetAuthState()
-
             navController.navigate(Screen.Login.route) {
-                // Kayıt ekranını stack'ten sil, geri tuşuna basınca bu form gelmesin
                 popUpTo(Screen.Register.route) { inclusive = true }
             }
         }
@@ -187,8 +181,6 @@ fun RegisterScreen(
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
-
-                    // ŞİFRE TEKRAR
                     OutlinedTextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
@@ -215,7 +207,6 @@ fun RegisterScreen(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // KAYIT OL BUTONU
                     Button(
                         onClick = {
                             when {

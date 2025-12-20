@@ -4,7 +4,6 @@ import android.util.Log
 import android.util.Patterns
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -20,7 +19,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.keremsen.e_commerce.viewmodel.UserViewModel
@@ -38,7 +36,6 @@ fun ProfileEditScreen(
 
     val context = LocalContext.current
 
-    // --- State Tanımları ---
     var fullname by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
@@ -46,14 +43,12 @@ fun ProfileEditScreen(
     var emailError by remember { mutableStateOf<String?>(null) }
     var phoneError by remember { mutableStateOf<String?>(null) }
 
-    // --- KRİTİK DÜZELTME: Sayfa açılınca veriyi yükle ---
     LaunchedEffect(Unit) {
         if (userProfile == null) {
             viewModel.loadMyProfile()
         }
     }
 
-    // --- Veriler Gelince Inputları Doldur ---
     LaunchedEffect(userProfile) {
         userProfile?.let { profile ->
             // Sadece inputlar boşsa doldur (Kullanıcı yazarken silinmesin)
@@ -63,7 +58,6 @@ fun ProfileEditScreen(
         }
     }
 
-    // --- İşlem Sonucu ---
     LaunchedEffect(operationSuccess) {
         if (operationSuccess) {
             Toast.makeText(context, "Profil başarıyla güncellendi.", Toast.LENGTH_SHORT).show()
@@ -80,7 +74,6 @@ fun ProfileEditScreen(
         }
     }
 
-    // --- Validasyon Fonksiyonları ---
     fun validateEmail(input: String): Boolean {
         return if (input.isNotEmpty() && Patterns.EMAIL_ADDRESS.matcher(input).matches()) {
             emailError = null
@@ -119,7 +112,6 @@ fun ProfileEditScreen(
         },
         containerColor = Color.White
     ) { paddingValues ->
-        // Eğer veri henüz yüklenmediyse Loading göster
         if (userProfile == null && isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -206,7 +198,6 @@ fun ProfileEditScreen(
                             )
                         } else {
                             if (!isProfileLoaded) {
-                                // Eğer profil yüklenmediyse tekrar yüklemeyi dene
                                 viewModel.loadMyProfile()
                                 Toast.makeText(context, "Profil verisi bekleniyor, tekrar deneyin.", Toast.LENGTH_SHORT).show()
                             } else {

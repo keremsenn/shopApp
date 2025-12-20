@@ -44,7 +44,7 @@ object AppModule {
     @Singleton
     fun provideAuthAuthenticator(
         dataStoreManager: DataStoreManager,
-        authApiService: javax.inject.Provider<AuthApiService> // Provider kullanımı dairesel bağımlılığı çözer
+        authApiService: javax.inject.Provider<AuthApiService>
     ): AuthAuthenticator = AuthAuthenticator(dataStoreManager, authApiService)
 
     @Provides

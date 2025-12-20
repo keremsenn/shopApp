@@ -32,8 +32,6 @@ class CartViewModel @Inject constructor(
                 if (response.isSuccessful) {
                     _cart.value = response.body()
                 } else {
-                    // Sepet boşsa veya hata varsa (örneğin 404) null dönebilir,
-                    // duruma göre handle edilebilir.
                     _cartMessage.value = "Sepet güncellenemedi: ${response.message()}"
                 }
             } catch (e: Exception) {
@@ -69,7 +67,6 @@ class CartViewModel @Inject constructor(
             try {
                 val response = cartRepository.updateItem(cartItemId, quantity)
                 if (response.isSuccessful) {
-                    // Mesaj göstermeye gerek olmayabilir, direkt güncelleyelim
                     getCart()
                 } else {
                     _cartMessage.value = "Güncelleme başarısız"

@@ -71,7 +71,7 @@ class OrderViewModel @Inject constructor(
     fun createOrder(addressId: Int, items: List<OrderItemRequest>? = null) {
         viewModelScope.launch {
             _isLoading.value = true
-            _operationSuccess.value = false // Resetle
+            _operationSuccess.value = false
             try {
                 val response = repository.createOrder(addressId, items)
                 if (response.isSuccessful) {

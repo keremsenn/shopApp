@@ -81,12 +81,10 @@ class ProductViewModel @Inject constructor(
         }
     }
 
-    // --- GÖRSEL İŞLEMLERİ ---
-
     fun addProductImages(productId: Int, files: List<MultipartBody.Part>) {
         executeApiCall(showLoading = true) {
             val response = repository.addProductImages(productId, files)
-            if (response.isSuccessful) fetchProductById(productId) // Detayı yenile
+            if (response.isSuccessful) fetchProductById(productId)
             response
         }
     }
@@ -94,16 +92,12 @@ class ProductViewModel @Inject constructor(
     fun deleteProductImage(imageId: Int, productId: Int) {
         executeApiCall(showLoading = true) {
             val response = repository.deleteProductImage(imageId)
-            if (response.isSuccessful) fetchProductById(productId) // Detayı yenile
+            if (response.isSuccessful) fetchProductById(productId)
             response
         }
     }
 
-    // --- YARDIMCI FONKSİYONLAR ---
 
-    /**
-     * Kod tekrarını önlemek için ortak API çağrı yapısı
-     */
     private fun <T> executeApiCall(
         showLoading: Boolean = true,
         call: suspend () -> retrofit2.Response<T>

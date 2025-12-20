@@ -6,9 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -86,7 +84,6 @@ fun HomeScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeContent(
     navController: NavController,
@@ -214,7 +211,6 @@ fun HomeContent(
 
                         Spacer(modifier = Modifier.width(8.dp))
 
-                        // ⭐ YENİ SIRALA BUTONU
                         SortBottomSheetButton(
                             currentSortOrder = sortOrder,
                             onSortSelected = { sortOrder = it }
@@ -271,7 +267,6 @@ fun SortBottomSheetButton(
     var showSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
-    // UI Butonu
     Surface(
         onClick = { showSheet = true },
         modifier = Modifier

@@ -5,7 +5,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -14,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -28,7 +26,6 @@ import com.keremsen.e_commerce.utils.Constants
 import com.keremsen.e_commerce.viewmodel.CartViewModel
 import com.keremsen.e_commerce.viewmodel.FavoriteViewModel
 import com.keremsen.e_commerce.viewmodel.ProductViewModel
-import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.HorizontalPagerIndicator
 import com.google.accompanist.pager.rememberPagerState
@@ -45,7 +42,6 @@ fun ProductDetailScreen(
 ) {
     val context = LocalContext.current
 
-    // --- Veriler ---
     val product by productViewModel.productDetail.collectAsState()
     val isLoading by productViewModel.isLoading.collectAsState()
     val cart by cartViewModel.cart.collectAsState()
@@ -54,18 +50,14 @@ fun ProductDetailScreen(
     val favorites by favoriteViewModel.favorites.collectAsState()
     val favMessage by favoriteViewModel.message.collectAsState()
 
-    // --- Kontroller ---
     val isFavorite = favorites.any { it.product_id == productId }
     val isInCart = cart?.items?.any { it.product?.id == productId } == true
 
-    // --- Başlangıç ---
     LaunchedEffect(productId) {
         productViewModel.fetchProductById(productId)
         favoriteViewModel.getFavorites()
         cartViewModel.getCart()
     }
-
-    // --- Mesajlar ---
     LaunchedEffect(cartMessage, favMessage) {
         cartMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
@@ -107,7 +99,6 @@ fun ProductDetailScreen(
                         cartViewModel.addToCart(productId, quantity)
                     },
                     onBuyNowClick = { quantity ->
-                        // ⭐ Yönlendirme: Checkout sayfasına ürün ID ve adet gönderilir
                         navController.navigate("checkout?productId=$productId&quantity=$quantity")
                     }
                 )
@@ -126,13 +117,11 @@ fun ProductDetailScreen(
                         .padding(paddingValues)
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // Ürün Resim Galerisi
                     ProductImageGallery(
                         images = item.images ?: emptyList(),
                         productName = item.name
                     )
 
-                    // Bilgiler Bölümü
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(item.category_name ?: "Kategorisiz", color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                         Spacer(modifier = Modifier.height(4.dp))
@@ -194,7 +183,6 @@ fun ProductDetailScreen(
     }
 }
 
-@OptIn(ExperimentalPagerApi::class)
 @Composable
 fun ProductImageGallery(
     images: List<com.keremsen.e_commerce.models.entityModel.ProductImage>,
@@ -237,7 +225,6 @@ fun ProductImageGallery(
                 }
             }
 
-            // Resim Sayacı Badge
             if (images.size > 1) {
                 Surface(
                     modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
@@ -262,7 +249,7 @@ fun BottomActionButtons(
     isInCart: Boolean,
     stock: Int,
     onAddToCart: (Int) -> Unit,
-    onBuyNowClick: (Int) -> Unit // ⭐ Callback eklendi
+    onBuyNowClick: (Int) -> Unit
 ) {
     var quantity by remember { mutableIntStateOf(1) }
     val maxSelectable = min(10, stock)
@@ -307,13 +294,12 @@ fun BottomActionButtons(
                     }
                 }
 
-                // Hemen Al
                 Button(
-                    onClick = { onBuyNowClick(quantity) }, // ⭐ Adet gönderiliyor
+                    onClick = { onBuyNowClick(quantity) },
                     enabled = stock > 0,
                     modifier = Modifier.weight(1f).height(54.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5722)) // Belirgin Turuncu
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5722))
                 ) {
                     Text("Hemen Al", fontWeight = FontWeight.Bold, color = Color.White)
                 }

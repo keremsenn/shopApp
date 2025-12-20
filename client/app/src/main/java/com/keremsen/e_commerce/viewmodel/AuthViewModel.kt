@@ -34,7 +34,6 @@ class AuthViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    // --- HATAYI TEMİZLEME FONKSİYONU ---
     fun clearError() {
         _error.value = null
     }
@@ -72,7 +71,7 @@ class AuthViewModel @Inject constructor(
     fun register(fullname: String, email: String, password: String, phone: String?) {
         viewModelScope.launch {
             _isLoading.value = true
-            _error.value = null // Yeni istekte eski hatayı temizle
+            _error.value = null
             try {
                 val response = authRepository.register(RegisterRequest(fullname, email, password, phone))
                 if (response.isSuccessful) {

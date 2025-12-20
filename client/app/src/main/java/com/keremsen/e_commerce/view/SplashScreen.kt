@@ -15,14 +15,7 @@ import kotlinx.coroutines.delay
 fun SplashScreen(navController: NavController) {
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.splash_screen))
     val progress by animateLottieCompositionAsState(composition)
-/*
-    LaunchedEffect(progress) {
-        if (progress == 1f) {
-            navController.navigate(Screen.Login.route) {
-                popUpTo(Screen.Splash.route) { inclusive = true }
-            }
-        }
-    }*/
+
     LaunchedEffect(Unit) {
         delay(1100)
         navController.navigate(Screen.Login.route) {

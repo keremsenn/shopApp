@@ -16,33 +16,24 @@ class UserViewModel @Inject constructor(
     private val repository: UserRepository
 ) : ViewModel() {
 
-    // 1. Giriş yapan kullanıcının kendi profili
     private val _userProfile = MutableStateFlow<User?>(null)
     val userProfile: StateFlow<User?> = _userProfile
 
-    // 2. Tüm kullanıcıların listesi (Admin paneli vs. için)
     private val _users = MutableStateFlow<List<User>>(emptyList())
     val users: StateFlow<List<User>> = _users
 
-    // 3. ID ile çekilen herhangi bir kullanıcının detayı
     private val _selectedUser = MutableStateFlow<User?>(null)
     val selectedUser: StateFlow<User?> = _selectedUser
 
-    // Yükleniyor durumu
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    // Hata Mesajları
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
-    // İşlem Başarılı mı? (Update/Delete sonrası tetiklenir)
     private val _operationSuccess = MutableStateFlow(false)
     val operationSuccess: StateFlow<Boolean> = _operationSuccess
 
-    // --- FONKSİYONLAR ---
-
-    // 1. Mevcut (Login olmuş) kullanıcının profilini getir
     fun loadMyProfile() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -61,7 +52,6 @@ class UserViewModel @Inject constructor(
         }
     }
 
-    // 2. Tüm Kullanıcıları Getir (UserRepository'deki getAllUsers)
     fun fetchAllUsers() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -80,7 +70,6 @@ class UserViewModel @Inject constructor(
         }
     }
 
-    // 3. ID'ye göre Kullanıcı Getir (UserRepository'deki getUserById)
     fun fetchUserById(userId: Int) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -99,7 +88,6 @@ class UserViewModel @Inject constructor(
         }
     }
 
-    // 4. Kullanıcı Güncelle (UserRepository'deki updateUser)
     fun updateProfile(userId: Int, fullName: String?, email: String?, phone: String?) {
         val request = UpdateUserRequest(
             fullname = fullName,
@@ -130,7 +118,6 @@ class UserViewModel @Inject constructor(
         }
     }
 
-    // 5. Kullanıcı Sil (UserRepository'deki deleteUser)
     fun deleteUser(userId: Int) {
         viewModelScope.launch {
             _isLoading.value = true

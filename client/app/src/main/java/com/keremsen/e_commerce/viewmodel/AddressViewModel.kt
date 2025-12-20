@@ -63,7 +63,6 @@ class AddressViewModel @Inject constructor(
             _operationSuccess.value = false
 
             try {
-                // ID 0 ise Ekle, değilse Güncelle
                 val response = if (id == 0) {
                     repository.createAddress(request)
                 } else {
@@ -73,7 +72,7 @@ class AddressViewModel @Inject constructor(
                 if (response.isSuccessful) {
                     _message.value = if (id == 0) "Adres eklendi" else "Adres güncellendi"
                     _operationSuccess.value = true
-                    getAddresses() // Listeyi yenile
+                    getAddresses()
                 } else {
                     _message.value = "İşlem başarısız: ${response.code()}"
                 }

@@ -12,7 +12,7 @@ class DataStoreManager(private val dataStore: DataStore<Preferences>) {
 
     companion object {
         private val ACCESS_TOKEN_KEY = stringPreferencesKey("access_token")
-        private val REFRESH_TOKEN_KEY = stringPreferencesKey("refresh_token") // Yeni
+        private val REFRESH_TOKEN_KEY = stringPreferencesKey("refresh_token")
         private val USER_ID_KEY = stringPreferencesKey("user_id")
     }
 
@@ -23,7 +23,7 @@ class DataStoreManager(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[ACCESS_TOKEN_KEY] = token }
     }
 
-    suspend fun saveRefreshToken(token: String) { // Yeni
+    suspend fun saveRefreshToken(token: String) {
         dataStore.edit { it[REFRESH_TOKEN_KEY] = token }
     }
 
@@ -32,7 +32,7 @@ class DataStoreManager(private val dataStore: DataStore<Preferences>) {
     }
 
     suspend fun getAccessToken(): String? = dataStore.data.map { it[ACCESS_TOKEN_KEY] }.firstOrNull()
-    suspend fun getRefreshToken(): String? = dataStore.data.map { it[REFRESH_TOKEN_KEY] }.firstOrNull() // Yeni
+    suspend fun getRefreshToken(): String? = dataStore.data.map { it[REFRESH_TOKEN_KEY] }.firstOrNull()
 
     suspend fun clear() {
         dataStore.edit { it.clear() }
