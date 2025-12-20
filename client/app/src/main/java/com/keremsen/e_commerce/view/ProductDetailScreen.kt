@@ -1,76 +1,121 @@
 package com.keremsen.e_commerce.view
 
+import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.keremsen.e_commerce.utils.Constants
+import com.keremsen.e_commerce.viewmodel.CartViewModel
+import com.keremsen.e_commerce.viewmodel.FavoriteViewModel
 import com.keremsen.e_commerce.viewmodel.ProductViewModel
+import com.google.accompanist.pager.ExperimentalPagerApi
+import com.google.accompanist.pager.HorizontalPager
+import com.google.accompanist.pager.HorizontalPagerIndicator
+import com.google.accompanist.pager.rememberPagerState
+import kotlin.math.min
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductDetailScreen(
     navController: NavController,
     productId: Int,
-    viewModel: ProductViewModel = hiltViewModel()
+    productViewModel: ProductViewModel = hiltViewModel(),
+    cartViewModel: CartViewModel = hiltViewModel(),
+    favoriteViewModel: FavoriteViewModel = hiltViewModel()
 ) {
-    // LiveData'yı Compose State'ine çeviriyoruz
-    val product by viewModel.productDetail.observeAsState()
-    val isLoading by viewModel.isLoading.observeAsState(false)
+    val context = LocalContext.current
 
-    // Sayfa açıldığında ürünü çek (sadece productId değiştiğinde çalışır)
+    // --- Veriler ---
+    val product by productViewModel.productDetail.collectAsState()
+    val isLoading by productViewModel.isLoading.collectAsState()
+    val cart by cartViewModel.cart.collectAsState()
+    val cartLoading by cartViewModel.isLoading.collectAsState()
+    val cartMessage by cartViewModel.cartMessage.collectAsState()
+    val favorites by favoriteViewModel.favorites.collectAsState()
+    val favMessage by favoriteViewModel.message.collectAsState()
+
+    // --- Kontroller ---
+    val isFavorite = favorites.any { it.product_id == productId }
+    val isInCart = cart?.items?.any { it.product?.id == productId } == true
+
+    // --- Başlangıç ---
     LaunchedEffect(productId) {
-        viewModel.fetchProductById(productId)
+        productViewModel.fetchProductById(productId)
+        favoriteViewModel.getFavorites()
+        cartViewModel.getCart()
+    }
+
+    // --- Mesajlar ---
+    LaunchedEffect(cartMessage, favMessage) {
+        cartMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            cartViewModel.clearMessage()
+        }
+        favMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            favoriteViewModel.clearMessage()
+        }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Ürün Detayı", fontSize = 18.sp) },
+                title = { Text("Ürün Detayı", fontSize = 18.sp, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Geri")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* Favori Ekle */ }) {
-                        Icon(Icons.Default.FavoriteBorder, contentDescription = "Favoriye Ekle")
+                    IconButton(onClick = { favoriteViewModel.toggleFavorite(productId) }) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Favoriye Ekle",
+                            tint = if (isFavorite) Color.Red else Color.Gray
+                        )
                     }
                 }
             )
         },
         bottomBar = {
             if (product != null) {
-                BottomActionButtons(onAddToCart = {
-                    // İleride buraya CartViewModel'den bir fonksiyon gelecek
-                })
+                BottomActionButtons(
+                    isLoading = cartLoading,
+                    isInCart = isInCart,
+                    stock = product!!.stock,
+                    onAddToCart = { quantity ->
+                        cartViewModel.addToCart(productId, quantity)
+                    },
+                    onBuyNowClick = { quantity ->
+                        // ⭐ Yönlendirme: Checkout sayfasına ürün ID ve adet gönderilir
+                        navController.navigate("checkout?productId=$productId&quantity=$quantity")
+                    }
+                )
             }
         }
     ) { paddingValues ->
         if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(Modifier.fillMaxSize().padding(paddingValues), Alignment.Center) {
                 CircularProgressIndicator()
             }
         } else {
@@ -79,31 +124,19 @@ fun ProductDetailScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
-                        .verticalScroll(rememberScrollState()) // Kaydırılabilir yapı
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    // 1. Ürün Resmi (Tam genişlik)
-                    AsyncImage(
-                        // Backend URL'in burayla eşleşmeli
-                        model = "http://192.168.0.7:5000/${item.images?.firstOrNull()?.url ?: ""}",
-                        contentDescription = item.name,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(350.dp)
-                            .background(Color.White),
-                        contentScale = ContentScale.Fit // Resmi kesmeden sığdır
+                    // Ürün Resim Galerisi
+                    ProductImageGallery(
+                        images = item.images ?: emptyList(),
+                        productName = item.name
                     )
 
-                    // 2. Bilgi Alanı
+                    // Bilgiler Bölümü
                     Column(modifier = Modifier.padding(20.dp)) {
-                        // Kategori
-                        Text(
-                            text = item.category_name ?: "",
-                            color = Color.Gray,
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
+                        Text(item.category_name ?: "Kategorisiz", color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.height(4.dp))
 
-                        // Ad ve Fiyat
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -111,51 +144,112 @@ fun ProductDetailScreen(
                         ) {
                             Text(
                                 text = item.name,
-                                fontSize = 24.sp,
+                                fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
                                 text = "${item.price} ₺",
-                                fontSize = 22.sp,
+                                fontSize = 20.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = Color.Black
                             )
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
-
-                        // Stok ve Satıcı
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (item.rating > 0) {
                                 Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB400), modifier = Modifier.size(18.dp))
-                                Text(text = " ${item.rating} ", fontWeight = FontWeight.Medium)
-                                Text(text = " | ", color = Color.Gray)
+                                Text(" ${item.rating} ", fontWeight = FontWeight.Medium)
+                                Text(" | ", color = Color.Gray)
                             }
-                            Text(text = "Stok: ${item.stock} | ", color = Color.Gray, fontSize = 14.sp)
-                            Text(text = "Satıcı: ${item.seller_name ?: ""}", color = Color.Gray, fontSize = 14.sp)
+                            Text(
+                                text = if (item.stock > 0) "Stokta Var (${item.stock})" else "Stokta Yok",
+                                color = if (item.stock > 0) Color(0xFF2E7D32) else Color.Red,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
                         }
 
                         Divider(modifier = Modifier.padding(vertical = 16.dp), thickness = 0.5.dp, color = Color.LightGray)
 
-                        // Açıklama Başlığı
-                        Text(text = "Ürün Açıklaması", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Ürün Açıklaması", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         Spacer(modifier = Modifier.height(8.dp))
-                        // Açıklama Metni
                         Text(
-                            text = item.description ?: "Bu ürün için açıklama girilmemiştir.",
+                            text = item.description ?: "Bu ürün için açıklama bulunmuyor.",
                             color = Color.DarkGray,
-                            lineHeight = 22.sp
+                            lineHeight = 22.sp,
+                            fontSize = 15.sp
                         )
 
-                        // Alt butonların altında boşluk kalması için
-                        Spacer(modifier = Modifier.height(100.dp))
+                        Spacer(modifier = Modifier.height(140.dp)) // Alt barın içeriği örtmemesi için boşluk
                     }
                 }
             } ?: run {
-                // Ürün bulunamadı durumu
                 Box(Modifier.fillMaxSize().padding(paddingValues), Alignment.Center) {
-                    Text("Ürün bilgisi yüklenemedi.", color = Color.Gray)
+                    Text("Ürün bulunamadı.", color = Color.Gray)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalPagerApi::class)
+@Composable
+fun ProductImageGallery(
+    images: List<com.keremsen.e_commerce.models.entityModel.ProductImage>,
+    productName: String
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(350.dp)
+            .background(Color.White)
+    ) {
+        if (images.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Görsel Bulunmuyor", color = Color.Gray)
+            }
+        } else {
+            val pagerState = rememberPagerState()
+
+            Column {
+                HorizontalPager(
+                    count = images.size,
+                    state = pagerState,
+                    modifier = Modifier.fillMaxWidth().weight(1f)
+                ) { page ->
+                    AsyncImage(
+                        model = Constants.getImageUrl(images[page].url),
+                        contentDescription = productName,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+
+                if (images.size > 1) {
+                    HorizontalPagerIndicator(
+                        pagerState = pagerState,
+                        modifier = Modifier.align(Alignment.CenterHorizontally).padding(12.dp),
+                        activeColor = MaterialTheme.colorScheme.primary,
+                        inactiveColor = Color.LightGray
+                    )
+                }
+            }
+
+            // Resim Sayacı Badge
+            if (images.size > 1) {
+                Surface(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.Black.copy(alpha = 0.5f)
+                ) {
+                    Text(
+                        text = "${pagerState.currentPage + 1}/${images.size}",
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
                 }
             }
         }
@@ -163,37 +257,83 @@ fun ProductDetailScreen(
 }
 
 @Composable
-fun BottomActionButtons(onAddToCart: () -> Unit) {
-    // Alt kısımdaki sabit buton grubu
+fun BottomActionButtons(
+    isLoading: Boolean,
+    isInCart: Boolean,
+    stock: Int,
+    onAddToCart: (Int) -> Unit,
+    onBuyNowClick: (Int) -> Unit // ⭐ Callback eklendi
+) {
+    var quantity by remember { mutableIntStateOf(1) }
+    val maxSelectable = min(10, stock)
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shadowElevation = 10.dp,
-        color = Color.White
+        shadowElevation = 20.dp,
+        color = Color.White,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .navigationBarsPadding(), // Cihazın alt barına denk gelmesin
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Sepete Ekle
-            OutlinedButton(
-                onClick = onAddToCart,
-                modifier = Modifier.weight(1f).height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
-            ) {
-                Text("Sepete Ekle")
+        Column(modifier = Modifier.padding(16.dp).navigationBarsPadding()) {
+            if (!isInCart && stock > 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = "Adet Seçimi:", fontWeight = FontWeight.Bold, color = Color.DarkGray)
+                    QuantitySelector(
+                        currentQty = quantity,
+                        maxQty = maxSelectable,
+                        onIncrease = { if (quantity < maxSelectable) quantity++ },
+                        onDecrease = { if (quantity > 1) quantity-- }
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Hemen Al
-            Button(
-                onClick = { /* Satın Alma Akışı */ },
-                modifier = Modifier.weight(1f).height(50.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Hemen Al")
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Sepete Ekle
+                OutlinedButton(
+                    onClick = { onAddToCart(quantity) },
+                    enabled = !isLoading && !isInCart && stock > 0,
+                    modifier = Modifier.weight(1f).height(54.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, if (isInCart) Color.Gray else MaterialTheme.colorScheme.primary)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text(if (isInCart) "Sepette Var" else "Sepete Ekle", fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Hemen Al
+                Button(
+                    onClick = { onBuyNowClick(quantity) }, // ⭐ Adet gönderiliyor
+                    enabled = stock > 0,
+                    modifier = Modifier.weight(1f).height(54.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5722)) // Belirgin Turuncu
+                ) {
+                    Text("Hemen Al", fontWeight = FontWeight.Bold, color = Color.White)
+                }
             }
+        }
+    }
+}
+
+@Composable
+fun QuantitySelector(currentQty: Int, maxQty: Int, onIncrease: () -> Unit, onDecrease: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.background(Color(0xFFF5F5F5), RoundedCornerShape(10.dp)).padding(4.dp)
+    ) {
+        IconButton(onClick = onDecrease, enabled = currentQty > 1, modifier = Modifier.size(36.dp)) {
+            Text("-", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+        Text(text = "$currentQty", modifier = Modifier.padding(horizontal = 12.dp), fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+        IconButton(onClick = onIncrease, enabled = currentQty < maxQty, modifier = Modifier.size(36.dp)) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
         }
     }
 }
