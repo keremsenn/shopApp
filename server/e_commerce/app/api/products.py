@@ -11,6 +11,16 @@ product_schema = ProductSchema()
 products_schema = ProductSchema(many=True)
 images_schema = ProductImageSchema(many=True)
 
+
+@products_bp.route('/search', methods=['GET'])
+def search_products_api():
+    query = request.args.get('q', '')
+
+    if not query:
+        return jsonify([]), 200
+    results = ProductService.search_in_elastic(query)
+    return jsonify(results), 200
+
 @products_bp.route('', methods=['GET'])
 def get_all_products():
     products = ProductService.get_all_products()
