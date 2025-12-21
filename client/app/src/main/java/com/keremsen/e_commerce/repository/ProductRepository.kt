@@ -11,6 +11,9 @@ import javax.inject.Singleton
 class ProductRepository @Inject constructor(
     private val apiService: ProductApiService
 ) {
+
+    suspend fun searchProducts(query: String) = apiService.searchProducts(query)
+
     suspend fun getAllProducts() = apiService.getAllProducts()
 
     suspend fun getProductById(productId: Int) = apiService.getProductById(productId)
