@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     navController: NavController
 ) {
-    var selectedTab by remember { mutableStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(0) }
 
     Scaffold(
         bottomBar = {
@@ -126,12 +126,10 @@ fun HomeContent(
         }
     }
 
-    val filteredProducts = products.filter { product ->
-        val matchesSearch = product.name.contains(searchQuery, ignoreCase = true)
-        val matchesCategory = if (selectedCategoryId != null) {
+    val finalDisplayList = products.filter { product ->
+        if (selectedCategoryId != null) {
             product.category_id == selectedCategoryId
         } else true
-        matchesSearch && matchesCategory
     }.let { list ->
         when (sortOrder) {
             "Ucuzdan Pahalıya" -> list.sortedBy { it.price }
@@ -203,9 +201,13 @@ fun HomeContent(
 
                         Spacer(modifier = Modifier.width(8.dp))
 
+                        // ⭐ SearchBarSection artık ViewModel'daki searchProducts'ı tetikliyor
                         SearchBarSection(
                             query = searchQuery,
-                            onQueryChange = { searchQuery = it },
+                            onQueryChange = {
+                                searchQuery = it
+                                productViewModel.searchProducts(it) // ES araması tetiklenir
+                            },
                             modifier = Modifier.weight(1f)
                         )
 
@@ -228,7 +230,8 @@ fun HomeContent(
                                 selected = true,
                                 onClick = { selectedCategoryId = null },
                                 label = { Text(it.name) },
-                                trailingIcon = { Icon(Icons.Default.Close, null, Modifier.size(16.dp)) }
+                                trailingIcon = { Icon(Icons.Default.Close, null, Modifier.size(16.dp)) },
+                                modifier = Modifier.padding(top = 8.dp)
                             )
                         }
                     }
@@ -240,14 +243,14 @@ fun HomeContent(
                             CircularProgressIndicator()
                         }
                     }
-                } else if (filteredProducts.isEmpty()) {
+                } else if (finalDisplayList.isEmpty()) {
                     item(span = { GridItemSpan(2) }) {
                         Box(Modifier.fillMaxWidth().height(200.dp), Alignment.Center) {
-                            Text("Ürün bulunamadı.", color = Color.Gray)
+                            Text("Aradığınız kriterlere uygun ürün bulunamadı.", color = Color.Gray)
                         }
                     }
                 } else {
-                    items(filteredProducts) { product ->
+                    items(finalDisplayList) { product ->
                         ProductItem(product = product) {
                             navController.navigate(Screen.ProductDetail.createRoute(product.id))
                         }
@@ -257,6 +260,7 @@ fun HomeContent(
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
