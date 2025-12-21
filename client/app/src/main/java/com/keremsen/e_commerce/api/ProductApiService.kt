@@ -15,8 +15,11 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface ProductApiService {
+    @GET("api/products/search")
+    suspend fun searchProducts(@Query("q") query: String): Response<List<Product>>
 
     @GET("api/products")
     suspend fun getAllProducts(): Response<List<Product>>
