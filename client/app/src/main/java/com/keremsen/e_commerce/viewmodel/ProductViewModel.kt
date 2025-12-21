@@ -7,6 +7,8 @@ import com.keremsen.e_commerce.models.requestModel.CreateProductRequest
 import com.keremsen.e_commerce.models.requestModel.UpdateProductRequest
 import com.keremsen.e_commerce.repository.ProductRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -17,6 +19,9 @@ import javax.inject.Inject
 class ProductViewModel @Inject constructor(
     private val repository: ProductRepository
 ) : ViewModel() {
+
+    // Arama gecikmesini yönetmek için Job
+    private var searchJob: Job? = null
 
     private val _products = MutableStateFlow<List<Product>>(emptyList())
     val products: StateFlow<List<Product>> = _products
@@ -33,9 +38,36 @@ class ProductViewModel @Inject constructor(
     private val _actionSuccess = MutableStateFlow(false)
     val actionSuccess: StateFlow<Boolean> = _actionSuccess
 
+    fun searchProducts(query: String) {
+        searchJob?.cancel()
+
+        if (query.isEmpty()) {
+            fetchAllProducts()
+            return
+        }
+
+        if (query.length < 2) return
+
+        searchJob = viewModelScope.launch {
+            delay(500)
+
+
+            executeApiCall(showLoading = true) {
+                val response = repository.searchProducts(query)
+                if (response.isSuccessful) {
+                    _products.value = response.body() ?: emptyList()
+                }
+                response
+            }
+        }
+    }
 
     fun fetchAllProducts() {
-        executeApiCall { repository.getAllProducts().also { if (it.isSuccessful) _products.value = it.body() ?: emptyList() } }
+        executeApiCall {
+            repository.getAllProducts().also {
+                if (it.isSuccessful) _products.value = it.body() ?: emptyList()
+            }
+        }
     }
 
     fun fetchProductById(productId: Int) {
@@ -46,11 +78,19 @@ class ProductViewModel @Inject constructor(
     }
 
     fun fetchProductsByCategory(categoryId: Int) {
-        executeApiCall { repository.getProductsByCategory(categoryId).also { if (it.isSuccessful) _products.value = it.body() ?: emptyList() } }
+        executeApiCall {
+            repository.getProductsByCategory(categoryId).also {
+                if (it.isSuccessful) _products.value = it.body() ?: emptyList()
+            }
+        }
     }
 
     fun fetchProductsBySeller(sellerId: Int) {
-        executeApiCall { repository.getProductsBySeller(sellerId).also { if (it.isSuccessful) _products.value = it.body() ?: emptyList() } }
+        executeApiCall {
+            repository.getProductsBySeller(sellerId).also {
+                if (it.isSuccessful) _products.value = it.body() ?: emptyList()
+            }
+        }
     }
 
     fun createProduct(request: CreateProductRequest) {
@@ -73,7 +113,6 @@ class ProductViewModel @Inject constructor(
         executeApiCall(showLoading = true) {
             val response = repository.deleteProduct(productId)
             if (response.isSuccessful) {
-                // Listeyi yerelde de güncelle (Performans için)
                 _products.value = _products.value.filter { it.id != productId }
                 _actionSuccess.value = true
             }
@@ -97,7 +136,7 @@ class ProductViewModel @Inject constructor(
         }
     }
 
-
+    // ⭐ Senin mevcut API Çağrı yapın (Hataları çözen kısım burası)
     private fun <T> executeApiCall(
         showLoading: Boolean = true,
         call: suspend () -> retrofit2.Response<T>
