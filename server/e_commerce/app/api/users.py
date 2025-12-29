@@ -2,7 +2,6 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
 from app.service.user_service import UserService
-# Şemalarını doğru klasörden import ettiğine emin ol
 from app.schemas.user_schema import UserSchema, UserUpdateSchema
 
 users_bp = Blueprint('users', __name__)

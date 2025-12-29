@@ -13,8 +13,8 @@ class UserSchema(Schema):
     phone = fields.Str(allow_none=True)
     role = fields.Str(
         validate=validate.OneOf(
-            ["customer", "seller", "admin"],
-            error="Geçersiz rol. Sadece customer, seller veya admin olabilir."
+            ["customer", "admin"],
+            error="Geçersiz rol. Sadece customer veya admin olabilir."
         ),
         load_default='customer'
     )

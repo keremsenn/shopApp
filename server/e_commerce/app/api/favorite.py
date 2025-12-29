@@ -1,5 +1,3 @@
-# app/api/favorites.py
-
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.service.favorite_service import FavoriteService
